@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Rankora Developer Intelligence API
+  version: 1.0.0
+  description: Multi-source evidence aggregation, explainable developer scoring, leagues, and role-fit matching.
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development server
+paths:
+  /leaderboards:
+    get:
+      summary: Retrieve global and skill leaderboards
+      parameters:
+        - name: league
+          in: query
+          schema:
+            type: string
+            enum: [all, rookie, rising, advanced, elite]
+        - name: skill
+          in: query
+          schema:
+            type: string
+            default: overall
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Leaderboard ranking snapshot
+  /developers/{username}:
+    get:
+      summary: Retrieve a developer's public or authorized profile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Developer profile with verified accounts and league placement
+  /developers/{username}/scores:
+    get:
+      summary: Get transparent score breakdown, formula components, and evidence items
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Detailed 5-component score breakdown (P, E, T, C, G) with confidence index
+  /integrations/{platform}/connect:
+    post:
+      summary: Initiate OAuth handshake or API key connection for GitHub, Codeforces, LeetCode
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [github, codeforces, leetcode, hackerrank]
+      responses:
+        '200':
+          description: Auth URL or connection token
+  /integrations/{platform}/sync:
+    post:
+      summary: Trigger an asynchronous evidence refresh for a connected platform
+      parameters:
+        - name: platform
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Sync job queued
+  /assessments:
+    get:
+      summary: List verified standardized skill challenges
+      responses:
+        '200':
+          description: Catalog of challenges across algorithms, frontend, backend, and systems
+  /assessments/{id}/attempts:
+    post:
+      summary: Submit challenge code for sandboxed evaluation and integrity verification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Evaluation result, test coverage, and score update
+  /market/benchmarks:
+    get:
+      summary: Retrieve market compensation benchmark ranges
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: seniority
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estimated compensation ranges with confidence and percentile boundaries
+  /hiring/matches:
+    get:
+      summary: Candidate discovery matching role-specific evidence for recruiters
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: minScore
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Ranked candidate matches with evidence justification
+  /reports:
+    post:
+      summary: Submit score dispute, appeal, or data correction report
+      responses:
+        '201':
+          description: Audit ticket created
