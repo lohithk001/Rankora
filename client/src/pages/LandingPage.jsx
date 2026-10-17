@@ -1,368 +1,577 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { motion } from 'motion/react';
+import { useUser } from '@clerk/react';
 import { 
-  Star, 
-  BarChart3, 
-  ShieldCheck, 
-  UserCheck, 
-  Play, 
-  ChevronDown, 
-  X,
-  Code2,
-  GitBranch,
-  Sparkles,
-  Trophy,
-  ArrowRight,
-  CheckCircle2
+  Trophy, 
+  Briefcase, 
+  DollarSign, 
+  Award, 
+  Lock, 
+  Unlock, 
+  ArrowRight, 
+  Sparkles, 
+  CheckCircle2, 
+  ExternalLink,
+  Zap,
+  ChevronRight
 } from 'lucide-react';
-import { RankoraLogo } from '../components/common/RankoraLogo';
 import { Button } from '../components/ui/Button';
+import { DEVELOPERS_DATABASE } from '../lib/mockData';
+
+// Top public ranking preview developers
+const TOP_RANKED_PREVIEW = [
+  DEVELOPERS_DATABASE["arjun"],
+  DEVELOPERS_DATABASE["sarah"],
+  DEVELOPERS_DATABASE["daniel"]
+].filter(Boolean);
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const [showDemoModal, setShowDemoModal] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const { isSignedIn } = useUser();
+
+  // Handle protected navigation: redirect to sign-in if not signed in
+  const handleFeatureClick = (path, isProtected) => {
+    if (isProtected && !isSignedIn) {
+      navigate('/sign-in');
+    } else {
+      navigate(path);
+    }
+  };
 
   const featureCards = [
     {
-      id: 'rankings',
-      title: 'Global Rankings',
-      desc: 'See where you stand worldwide',
-      icon: Star,
-      iconColor: 'text-[#D97706]',
-      iconBg: 'bg-[#FFF8DC] border border-[#FFE89A]',
-      path: '/leaderboard'
+      id: 'leaderboard',
+      title: 'Global Developer Leaderboard',
+      desc: 'Explore real-time rankings across algorithms, architecture, and code craft. 100% open to the public.',
+      icon: Trophy,
+      badge: 'PUBLIC',
+      badgeColor: 'bg-[#E8F8F0] text-[#065F46] border border-[#A7F3D0]',
+      iconBg: 'bg-[#FFF8DC] text-[#D97706]',
+      isProtected: false,
+      path: '/leaderboard',
+      cta: 'Browse Public Ranks'
     },
     {
-      id: 'analytics',
-      title: 'Skill Analytics',
-      desc: 'Track your growth and strengths',
-      icon: BarChart3,
-      iconColor: 'text-[#059669]',
-      iconBg: 'bg-[#E4F8EF] border border-[#B9EED9]',
-      path: '/skills'
+      id: 'skills',
+      title: 'Forensic Skill Diagnostics',
+      desc: 'Multi-dimensional radar metrics analyzing code hygiene, algorithmic complexity, and PR consistency.',
+      icon: Award,
+      badge: 'LOGIN ONLY',
+      badgeColor: 'bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]',
+      iconBg: 'bg-[#EBF3FF] text-[#2563EB]',
+      isProtected: true,
+      path: '/skills',
+      cta: isSignedIn ? 'View Your Skills' : 'Sign In to Unlock'
     },
     {
-      id: 'evidence',
-      title: 'Verified Evidence',
-      desc: 'Showcase real projects & activity',
-      icon: ShieldCheck,
-      iconColor: 'text-[#DC2626]',
-      iconBg: 'bg-[#FFE8E5] border border-[#FFD3CE]',
-      path: '/assessments'
+      id: 'market-value',
+      title: 'Real-Time Market Rate Engine',
+      desc: 'Empirical compensation percentiles mapped directly to your verified engineering rank and location.',
+      icon: DollarSign,
+      badge: 'LOGIN ONLY',
+      badgeColor: 'bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]',
+      iconBg: 'bg-[#E6FFFA] text-[#0D9488]',
+      isProtected: true,
+      path: '/market-value',
+      cta: isSignedIn ? 'Calculate Market Value' : 'Sign In to Unlock'
     },
     {
-      id: 'recruiter',
-      title: 'Recruiter Access',
-      desc: 'Get discovered by top companies',
-      icon: UserCheck,
-      iconColor: 'text-[#7C3AED]',
-      iconBg: 'bg-[#F3EFFF] border border-[#DDD0FF]',
-      path: '/hiring'
+      id: 'hiring',
+      title: 'Recruiter Direct Pipeline',
+      desc: 'High-signal candidate discovery for tech leads. Bypass resume black holes with verified skill proof.',
+      icon: Briefcase,
+      badge: 'LOGIN ONLY',
+      badgeColor: 'bg-[#F1F5F9] text-[#475569] border border-[#CBD5E1]',
+      iconBg: 'bg-[#F3E8FF] text-[#9333EA]',
+      isProtected: true,
+      path: '/hiring',
+      cta: isSignedIn ? 'Search Candidates' : 'Sign In to Unlock'
     }
   ];
 
   return (
-    <div className="w-full min-h-screen bg-[#F5F8FF] flex flex-col font-sans">
+    <div className="w-full space-y-10 sm:space-y-14">
       
-      {/* Top Navigation Bar matching Panel 1 */}
-      <header className="w-full bg-white/80 backdrop-blur-md border-b border-[#E2EAF5] sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between">
-          
-          {/* Brand Logo */}
-          <div className="flex items-center gap-8">
-            <RankoraLogo size="md" />
-
-            {/* Center Navigation Links */}
-            <nav className="hidden md:flex items-center gap-7 text-xs sm:text-sm font-semibold text-[#687793]">
-              <Link to="/" className="text-[#15264B] font-bold">
-                Home
-              </Link>
-              <Link to="/leaderboard" className="hover:text-[#15264B] transition-colors">
-                Leaderboard
-              </Link>
-              <Link to="/skills" className="hover:text-[#15264B] transition-colors">
-                Explore
-              </Link>
-              <Link to="/hiring" className="hover:text-[#15264B] transition-colors">
-                Hiring
-              </Link>
-              
-              {/* More Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  className="flex items-center gap-1 hover:text-[#15264B] transition-colors cursor-pointer"
-                >
-                  <span>More</span>
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
-
-                {showMoreMenu && (
-                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-[#E2EAF5] p-2 z-50 animate-in fade-in slide-in-from-top-1">
-                    <Link
-                      to="/assessments"
-                      onClick={() => setShowMoreMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold text-[#15264B] hover:bg-[#F5F8FF] rounded-xl transition"
-                    >
-                      Assessments
-                    </Link>
-                    <Link
-                      to="/growth"
-                      onClick={() => setShowMoreMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold text-[#15264B] hover:bg-[#F5F8FF] rounded-xl transition"
-                    >
-                      Growth Dashboard
-                    </Link>
-                    <Link
-                      to="/market-value"
-                      onClick={() => setShowMoreMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold text-[#15264B] hover:bg-[#F5F8FF] rounded-xl transition"
-                    >
-                      Market Value
-                    </Link>
-                    <Link
-                      to="/settings"
-                      onClick={() => setShowMoreMenu(false)}
-                      className="block px-3 py-2 text-xs font-semibold text-[#15264B] hover:bg-[#F5F8FF] rounded-xl transition"
-                    >
-                      Settings
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </nav>
-          </div>
-
-          {/* Right Auth Buttons */}
-          <div className="flex items-center gap-3">
-            <Link
-              to="/leaderboard"
-              className="text-xs sm:text-sm font-semibold text-[#15264B] hover:text-[#0D1933] px-3 py-2 transition-colors"
-            >
-              Log in
-            </Link>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => navigate('/leaderboard')}
-              className="px-5 text-xs font-bold"
-            >
-              Sign up
-            </Button>
-          </div>
-
+      {/* 1. Public vs Login-Only Status Alert */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full bg-[#EBF3FF] border border-[#BFDBFE] rounded-2xl px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs"
+      >
+        <div className="flex items-center gap-2.5 text-xs text-[#1E3A8A] font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#10B981] animate-ping" />
+          <span className="font-bold">Transparent Access Model:</span>
+          <span>Leaderboard and global rankings are <strong>100% public</strong>. Advanced skill diagnostics, recruiter pipelines, and compensation metrics require sign-in.</span>
         </div>
-      </header>
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            to="/leaderboard"
+            className="text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 hover:underline"
+          >
+            <span>View Public Rankings</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </motion.div>
 
-      {/* Main Landing Content Container */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        
-        {/* Hero Card matching Screen 1 */}
-        <div className="bg-white rounded-3xl p-6 sm:p-10 lg:p-12 border border-[#E2EAF5] shadow-[0_4px_24px_rgba(21,38,75,0.03)] relative overflow-hidden">
+      {/* 2. Hero Section */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="bg-white rounded-3xl p-6 sm:p-10 lg:p-12 border border-[#E2EAF5] shadow-[0_4px_24px_rgba(21,38,75,0.03)] relative overflow-hidden"
+      >
+        {/* Soft background aura */}
+        <div className="absolute -top-20 -right-20 w-96 h-96 bg-[#FFF8DC]/70 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-[#EAF3FF]/80 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
           
-          {/* Subtle Pastel Background Accents */}
-          <div className="absolute -top-16 -right-16 w-80 h-80 bg-[#FFF8DC]/60 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-16 w-80 h-80 bg-[#EAF3FF]/80 rounded-full blur-3xl pointer-events-none" />
+          {/* Left Column: Mission & Core Value */}
+          <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F5F8FF] border border-[#E2EAF5] text-[11px] font-bold text-[#2563EB] uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <span>Objective Developer Benchmark</span>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
-            
-            {/* Left Column: Headline and Call-to-actions */}
-            <div className="lg:col-span-7 space-y-5 text-left">
-              <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-extrabold text-[#15264B] tracking-tight leading-[1.12]">
-                Your Skills.<br />
-                <span className="relative inline-block mt-1">
-                  Your Global Signal.
-                  <span className="absolute left-0 bottom-1 w-full h-3 bg-[#FFE89A]/70 -z-10 rounded-sm transform -rotate-1" />
-                </span>
-              </h1>
+            <h1 className="text-3xl sm:text-5xl lg:text-[52px] font-extrabold text-[#15264B] tracking-tight leading-[1.12]">
+              Real Signal.<br />
+              Public Rankings.<br />
+              <span className="relative inline-block mt-1 text-[#2563EB]">
+                Zero Resume Fluff.
+                <span className="absolute left-0 bottom-1 w-full h-3 bg-[#FFE89A]/60 -z-10 rounded-sm transform -rotate-1" />
+              </span>
+            </h1>
 
-              <p className="text-sm sm:text-base text-[#687793] max-w-lg leading-relaxed font-normal">
-                Get ranked, grow your skills, and get discovered by top recruiters — all in one place.
-              </p>
+            <p className="text-sm sm:text-base text-[#687793] max-w-xl leading-relaxed">
+              Rankora indexes algorithmic challenges, production GitHub contributions, and architecture depth into a verified global ranking. <strong>The leaderboard is open to all</strong>. Sign in to sync your accounts and claim your rank.
+            </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => navigate('/leaderboard')}
-                  className="px-8 shadow-sm text-sm font-bold"
-                >
-                  Get Started
-                </Button>
+            {/* CTAs */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => navigate('/leaderboard')}
+                className="px-7 shadow-sm text-sm font-bold flex items-center gap-2 cursor-pointer"
+              >
+                <Trophy className="w-4 h-4 text-[#FFE89A]" />
+                <span>Explore Public Leaderboard</span>
+              </Button>
 
+              {isSignedIn ? (
                 <Button
                   variant="secondary"
                   size="lg"
-                  onClick={() => setShowDemoModal(true)}
-                  className="px-6 text-sm font-semibold flex items-center gap-2"
+                  onClick={() => navigate('/dashboard')}
+                  className="px-6 text-sm font-semibold flex items-center gap-2 cursor-pointer"
                 >
-                  <Play className="w-4 h-4 fill-[#15264B] text-[#15264B]" />
-                  <span>Watch Demo</span>
+                  <Zap className="w-4 h-4 text-[#2563EB]" />
+                  <span>Go to Dashboard</span>
                 </Button>
-              </div>
-
-              {/* Verified Signal Indicators */}
-              <div className="pt-3 flex items-center gap-5 text-xs text-[#687793] font-medium">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                  <span>Evidence-based scoring</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-                  <span>Global peer benchmark</span>
-                </div>
-              </div>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => navigate('/sign-in')}
+                  className="px-6 text-sm font-semibold flex items-center gap-2 cursor-pointer"
+                >
+                  <Lock className="w-4 h-4 text-[#687793]" />
+                  <span>Sign In to Unlock All</span>
+                </Button>
+              )}
             </div>
 
-            {/* Right Column: Hero Illustration & Decorative Badges */}
-            <div className="lg:col-span-5 flex justify-center items-center relative">
-              <div className="relative w-full max-w-sm sm:max-w-md">
-                
-                {/* Floating Badge: Code Build Grow */}
-                <div className="absolute -top-3 right-4 z-20 bg-white/95 backdrop-blur-xs border border-[#FFE89A] px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 text-xs font-bold text-[#B45309] animate-bounce-subtle">
-                  <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
-                  <span>Code • Build • Grow</span>
-                </div>
-
-                {/* Floating Code Chip */}
-                <div className="absolute top-12 -left-3 z-20 bg-[#15264B] text-white px-2.5 py-1 rounded-xl shadow-md text-xs font-mono font-bold flex items-center gap-1">
-                  <Code2 className="w-3.5 h-3.5 text-[#4CC9A6]" />
-                  <span>&lt;/&gt;</span>
-                </div>
-
-                {/* Floating Git Badge */}
-                <div className="absolute bottom-6 -right-2 z-20 bg-white border border-[#E2EAF5] px-2.5 py-1.5 rounded-xl shadow-sm text-xs font-semibold text-[#15264B] flex items-center gap-1.5">
-                  <GitBranch className="w-3.5 h-3.5 text-[#059669]" />
-                  <span>Verified Commits</span>
-                </div>
-
-                {/* Developer Illustration */}
-                <div className="rounded-3xl overflow-hidden bg-gradient-to-b from-[#FFF8DC] to-[#F5F8FF] p-4 border border-[#FFE89A]/50">
-                  <img 
-                    src="/hero-developer.jpg" 
-                    alt="Rankora Developer with Laptop and Cat" 
-                    className="w-full h-auto object-contain rounded-2xl select-none"
-                    onError={(e) => {
-                      // Graceful fallback if public asset isn't resolved
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-
+            {/* Trust Badges */}
+            <div className="pt-2 flex flex-wrap items-center gap-5 text-xs text-[#687793] font-medium border-t border-[#F1F5F9]">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+                <span>100% Public Leaderboard</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+                <span>Clerk Protected Auth</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#059669]" />
+                <span>Anti-Cheat Normalized</span>
               </div>
             </div>
+          </div>
 
+          {/* Right Column: Live Ranked Developer Preview Card */}
+          <div className="lg:col-span-5 flex justify-center items-center">
+            <div className="w-full max-w-md bg-white/90 backdrop-blur-md rounded-3xl p-5 sm:p-6 border border-[#E2EAF5] shadow-lg space-y-4">
+              
+              <div className="flex items-center justify-between pb-3 border-b border-[#E2EAF5]">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#10B981]" />
+                  <span className="text-xs font-bold text-[#15264B] uppercase tracking-wider">
+                    Global Rank #1 Signal
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E8F8F0] text-[#065F46] border border-[#A7F3D0]">
+                  Public Verified
+                </span>
+              </div>
+
+              {/* Top Developer Card Showcase */}
+              {TOP_RANKED_PREVIEW[0] && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={TOP_RANKED_PREVIEW[0].avatar}
+                      alt={TOP_RANKED_PREVIEW[0].displayName}
+                      className="w-14 h-14 rounded-2xl object-cover border-2 border-[#FFE89A] shadow-xs"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-extrabold text-[#15264B] text-base">
+                          {TOP_RANKED_PREVIEW[0].displayName}
+                        </h4>
+                        <span className="text-xs font-bold px-1.5 py-0.2 rounded bg-[#FFE89A] text-[#92400E]">
+                          {TOP_RANKED_PREVIEW[0].globalRank}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#687793]">{TOP_RANKED_PREVIEW[0].roleTitle}</p>
+                      <p className="text-[11px] text-[#059669] font-bold">{TOP_RANKED_PREVIEW[0].percentileBadge} globally</p>
+                    </div>
+                  </div>
+
+                  {/* Score breakdown metrics */}
+                  <div className="grid grid-cols-3 gap-2 bg-[#F5F8FF] p-3 rounded-2xl border border-[#E2EAF5] text-center">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#94A3B8] block">Composite</span>
+                      <span className="text-base font-extrabold text-[#15264B]">{TOP_RANKED_PREVIEW[0].totalScore}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#94A3B8] block">Algorithms</span>
+                      <span className="text-base font-extrabold text-[#059669]">99/100</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#94A3B8] block">Systems</span>
+                      <span className="text-base font-extrabold text-[#2563EB]">98/100</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {TOP_RANKED_PREVIEW[0].techStack.slice(0, 4).map((tech) => (
+                      <span key={tech} className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 text-[#475569]">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/leaderboard')}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs font-bold"
+                  >
+                    <span>View on Public Leaderboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+
+            </div>
           </div>
 
         </div>
+      </motion.div>
 
-        {/* 4 Feature Mini-Cards matching Screen 1 bottom */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 pb-6">
+      {/* 3. Live Leaderboard Podium Sneak Peek (Open to Public) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#059669] uppercase tracking-wider bg-[#E8F8F0] px-2.5 py-0.5 rounded-full border border-[#A7F3D0]">
+                Open Intelligence
+              </span>
+              <span className="text-xs text-[#94A3B8]">No login required</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#15264B] tracking-tight mt-1">
+              Top 3 Verified Developers
+            </h2>
+            <p className="text-xs sm:text-sm text-[#687793]">
+              Anyone can view public scores and verify developer rank integrity without signing up.
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => navigate('/leaderboard')}
+            className="flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+          >
+            <span>Open Full 100+ Leaderboard</span>
+            <ExternalLink className="w-4 h-4 text-[#2563EB]" />
+          </Button>
+        </div>
+
+        {/* 3 Podium Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {TOP_RANKED_PREVIEW.map((dev, idx) => (
+            <motion.div
+              key={dev.id}
+              whileHover={{ y: -4 }}
+              className="bg-white rounded-3xl p-5 border border-[#E2EAF5] shadow-sm flex flex-col justify-between space-y-4 hover:border-[#BFDBFE] transition"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <img
+                      src={dev.avatar}
+                      alt={dev.displayName}
+                      className="w-12 h-12 rounded-2xl object-cover border border-[#E2EAF5]"
+                    />
+                    <span className={`absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white ${
+                      idx === 0 ? 'bg-[#F59E0B]' : idx === 1 ? 'bg-[#94A3B8]' : 'bg-[#D97706]'
+                    }`}>
+                      #{idx + 1}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-[#15264B]">{dev.displayName}</h3>
+                    <p className="text-xs text-[#687793]">{dev.roleTitle}</p>
+                    <span className="text-[10px] font-bold text-[#059669]">{dev.percentileBadge}</span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-lg font-black text-[#15264B]">{dev.totalScore}</span>
+                  <span className="text-[10px] block text-[#94A3B8] -mt-1">Signal Score</span>
+                </div>
+              </div>
+
+              <div className="bg-[#F5F8FF] rounded-xl p-2.5 text-xs text-[#687793] line-clamp-2">
+                "{dev.headline}"
+              </div>
+
+              <div className="pt-2 border-t border-[#F1F5F9] flex items-center justify-between text-xs">
+                <span className="text-[11px] font-semibold text-[#687793]">{dev.location}</span>
+                <Link
+                  to={`/developers/${dev.username}`}
+                  className="font-bold text-[#2563EB] hover:underline flex items-center gap-1"
+                >
+                  <span>Public Card</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* 4. The "No BS" Matrix: What's Public vs. What's Login-Only */}
+      <div className="bg-white rounded-3xl p-6 sm:p-10 border border-[#E2EAF5] shadow-xs space-y-6">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <span className="text-xs font-bold text-[#2563EB] uppercase tracking-wider bg-[#EFF6FF] px-3 py-1 rounded-full">
+            Transparent Boundaries
+          </span>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#15264B] tracking-tight">
+            How Rankora Works: Public vs. Login Only
+          </h2>
+          <p className="text-xs sm:text-sm text-[#687793]">
+            We keep competitive ranks transparent for the global community, while private diagnostic tools, salary benchmarks, and direct candidate messaging require authentication.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          
+          {/* Public Column */}
+          <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#DCFCE7]">
+              <div className="flex items-center gap-2">
+                <Unlock className="w-5 h-5 text-[#16A34A]" />
+                <h3 className="font-bold text-base text-[#166534]">100% Public Access</h3>
+              </div>
+              <span className="text-xs font-bold text-[#16A34A] bg-white px-2.5 py-0.5 rounded-full border border-[#BBF7D0]">
+                No Account Needed
+              </span>
+            </div>
+
+            <ul className="space-y-3 text-xs sm:text-sm text-[#14532D]">
+              <li className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
+                <span><strong>Global Leaderboard Index:</strong> View, search, and filter top developers worldwide.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
+                <span><strong>Competitive Coding Ranks:</strong> Codeforces & algorithmic contest percentiles.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
+                <span><strong>Public Developer Portfolios:</strong> Shareable verified ranking badges.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0 mt-0.5" />
+                <span><strong>Scoring Transparency:</strong> Open formulas for skill weighting and normalization.</span>
+              </li>
+            </ul>
+
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate('/leaderboard')}
+                className="w-full bg-[#16A34A] hover:bg-[#15803D] text-white"
+              >
+                Go to Public Leaderboard
+              </Button>
+            </div>
+          </div>
+
+          {/* Login Only Column */}
+          <div className="bg-[#FAF5FF] border border-[#E9D5FF] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F3E8FF]">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-[#9333EA]" />
+                <h3 className="font-bold text-base text-[#6B21A8]">Login-Only Features</h3>
+              </div>
+              <span className="text-xs font-bold text-[#9333EA] bg-white px-2.5 py-0.5 rounded-full border border-[#E9D5FF]">
+                Free Account
+              </span>
+            </div>
+
+            <ul className="space-y-3 text-xs sm:text-sm text-[#581C87]">
+              <li className="flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-[#9333EA] shrink-0 mt-0.5" />
+                <span><strong>Claim & Sync Your Profile:</strong> Connect GitHub, LeetCode, and verify your personal signal.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-[#9333EA] shrink-0 mt-0.5" />
+                <span><strong>Forensic Skill Analytics:</strong> Deep radar evaluations of commit history and code craft.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-[#9333EA] shrink-0 mt-0.5" />
+                <span><strong>Market Value Calculator:</strong> Real salary benchmarks matched to your engineering signal.</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-[#9333EA] shrink-0 mt-0.5" />
+                <span><strong>Recruiter Talent Search:</strong> Direct contact pipeline between tech leads and top engineers.</span>
+              </li>
+            </ul>
+
+            <div className="pt-2">
+              {isSignedIn ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full bg-[#9333EA] hover:bg-[#7E22CE] text-white"
+                >
+                  Access Your Member Dashboard
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate('/sign-in')}
+                  className="w-full bg-[#9333EA] hover:bg-[#7E22CE] text-white"
+                >
+                  Sign In to Unlock Member Tools
+                </Button>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* 5. 4 Core Feature Cards with Explicit Public/Login Gate */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-[#15264B] tracking-tight">
+            Explore Rankora Capabilities
+          </h2>
+          <p className="text-xs sm:text-sm text-[#687793]">
+            Click any module below. Public modules open immediately; member modules will prompt for sign-in.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {featureCards.map((card) => {
             const Icon = card.icon;
             return (
-              <div 
+              <motion.div
                 key={card.id}
-                onClick={() => navigate(card.path)}
-                className="bg-white p-5 sm:p-6 rounded-2xl border border-[#E2EAF5] shadow-[0_2px_12px_rgba(21,38,75,0.02)] flex flex-col justify-between space-y-4 hover:border-[#CBD8EB] hover:shadow-md cursor-pointer transition-all group hover:-translate-y-0.5"
+                whileHover={{ y: -6, scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => handleFeatureClick(card.path, card.isProtected)}
+                className="bg-white p-5 sm:p-6 rounded-3xl border border-[#E2EAF5] shadow-2xs hover:border-[#93C5FD] hover:shadow-md cursor-pointer transition-all flex flex-col justify-between space-y-4 relative group"
               >
-                <div className={`w-11 h-11 rounded-2xl ${card.iconBg} flex items-center justify-center ${card.iconColor} group-hover:scale-105 transition-transform`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-
                 <div>
-                  <h3 className="font-bold text-sm sm:text-base text-[#15264B] group-hover:text-[#3B82F6] transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-11 h-11 rounded-2xl ${card.iconBg} flex items-center justify-center font-bold`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${card.badgeColor}`}>
+                      {card.badge}
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-base text-[#15264B] mt-4 group-hover:text-[#2563EB] transition-colors">
                     {card.title}
                   </h3>
-                  <p className="text-xs text-[#687793] mt-1 leading-relaxed">
+
+                  <p className="text-xs text-[#687793] mt-1.5 leading-relaxed">
                     {card.desc}
                   </p>
                 </div>
-              </div>
+
+                <div className="pt-3 border-t border-[#F1F5F9] flex items-center justify-between text-xs font-bold text-[#2563EB]">
+                  <span>{card.cta}</span>
+                  {card.isProtected && !isSignedIn ? (
+                    <Lock className="w-3.5 h-3.5 text-[#94A3B8]" />
+                  ) : (
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  )}
+                </div>
+              </motion.div>
             );
           })}
         </div>
+      </div>
 
-      </main>
+      {/* 6. Call to Action Banner */}
+      <div className="bg-gradient-to-r from-[#15264B] to-[#1E3A8A] rounded-3xl p-8 sm:p-12 text-white text-center space-y-6 relative overflow-hidden shadow-xl">
+        <div className="absolute -top-24 -left-24 w-72 h-72 bg-[#2563EB]/40 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-[#FFE89A]/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Interactive Demo Walkthrough Modal */}
-      {showDemoModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
-            className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-[#E2EAF5] space-y-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#FFE89A] flex items-center justify-center">
-                  <Play className="w-4 h-4 fill-[#15264B] text-[#15264B]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#15264B]">Rankora Product Walkthrough</h3>
-                  <p className="text-xs text-[#687793]">How verified skill signals work</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setShowDemoModal(false)}
-                className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <div className="relative z-10 max-w-2xl mx-auto space-y-3">
+          <span className="text-xs font-bold text-[#FFE89A] uppercase tracking-widest bg-white/10 px-3 py-1 rounded-full border border-white/10">
+            Join the Verified Network
+          </span>
+          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+            Claim Your Developer Rank Today
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300">
+            Sign up in 30 seconds with Clerk. Benchmark your skills, view your real compensation bracket, and put your engineering signal on the map.
+          </p>
 
-            <div className="space-y-4 text-xs sm:text-sm text-[#687793]">
-              <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2">
-                <div className="font-bold text-[#15264B] flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-[#D97706]" />
-                  <span>1. Multi-Platform Evidence Synthesis</span>
-                </div>
-                <p>
-                  Rankora aggregates your verified challenge solutions from LeetCode, Codeforces, GitHub repositories, and system design assessments into one unified Signal score.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2">
-                <div className="font-bold text-[#15264B] flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-[#059669]" />
-                  <span>2. Peer-Benchmarked Skill Intelligence</span>
-                </div>
-                <p>
-                  Understand your relative percentile globally across problem solving, architectural design, software craft, and collaborative speed.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2">
-                <div className="font-bold text-[#15264B] flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-[#7C3AED]" />
-                  <span>3. Recruiter Discovery Without Resume Spam</span>
-                </div>
-                <p>
-                  Top technology companies search directly by verified proof and compensation benchmarks, giving engineers direct access to premier roles.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <Button variant="secondary" size="md" onClick={() => setShowDemoModal(false)}>
-                Close
-              </Button>
-              <Button 
-                variant="primary" 
-                size="md" 
-                onClick={() => {
-                  setShowDemoModal(false);
-                  navigate('/leaderboard');
-                }}
-                className="flex items-center gap-2"
-              >
-                <span>Explore Live Leaderboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-3">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => navigate('/sign-up')}
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white px-8 font-bold shadow-lg cursor-pointer"
+            >
+              Create Free Account
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => navigate('/sign-in')}
+              className="bg-white/15 hover:bg-white/25 text-white border-white/20 px-6 font-semibold cursor-pointer"
+            >
+              Sign In
+            </Button>
           </div>
         </div>
-      )}
+      </div>
 
     </div>
   );

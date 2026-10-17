@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   User, 
   Lock, 
@@ -7,23 +8,27 @@ import {
   Download, 
   HelpCircle, 
   Check, 
-  ShieldCheck, 
   Info,
   Trash2,
-  Save,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CURRENT_USER } from '../lib/mockData';
+import { useDeveloperProfile } from '../context/DeveloperProfileContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 export function SettingsPage() {
-  const [activeSubTab, setActiveSubTab] = useState('connected');
-  const [accounts, setAccounts] = useState(CURRENT_USER.connectedAccounts);
-  const [displayName, setDisplayName] = useState(CURRENT_USER.displayName);
-  const [roleTitle, setRoleTitle] = useState(CURRENT_USER.roleTitle);
-  const [headline, setHeadline] = useState(CURRENT_USER.headline);
+  const navigate = useNavigate();
+  const { profile, onboardingStatus, persistenceInfo } = useDeveloperProfile();
+  const [activeSubTab, setActiveSubTab] = useState('account');
+  const [accounts, setAccounts] = useState(profile.connectedAccounts || CURRENT_USER.connectedAccounts);
+  const [displayName, setDisplayName] = useState(profile.displayName || CURRENT_USER.displayName);
+  const [roleTitle, setRoleTitle] = useState(profile.roleTitle || CURRENT_USER.roleTitle);
+  const [headline, setHeadline] = useState(profile.headline || CURRENT_USER.headline);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
   // Privacy toggles
@@ -80,14 +85,18 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-5xl mx-auto">
       
       {/* Header */}
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <h1 className="text-xl sm:text-2xl font-extrabold text-[#15264B] tracking-tight">
           Settings
         </h1>
         <p className="text-xs sm:text-sm text-[#687793] mt-0.5 font-medium">
           Manage your account preferences, privacy, and connected platforms
         </p>
-      </div>
+      </motion.div>
 
       {/* Main 2-Column Layout matching Panel 9 */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
@@ -98,8 +107,9 @@ export function SettingsPage() {
             const Icon = item.icon;
             const isActive = activeSubTab === item.id;
             return (
-              <button
+              <motion.button
                 key={item.id}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveSubTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
                   isActive 
@@ -109,82 +119,95 @@ export function SettingsPage() {
               >
                 <Icon className={`w-4 h-4 ${isActive ? 'text-[#15264B] stroke-[2.5]' : 'text-[#687793]'}`} />
                 <span>{item.label}</span>
-              </button>
+              </motion.button>
             );
           })}
         </Card>
 
         {/* Right Content Panel (8 Cols) */}
-        <div className="md:col-span-8 space-y-6">
-          
-          {/* TAB 1: CONNECTED ACCOUNTS matching Screen 9 */}
-          {activeSubTab === 'connected' && (
-            <Card className="p-6 sm:p-8 space-y-6">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
-                  Connected Accounts
-                </h2>
-                <p className="text-xs text-[#687793] mt-0.5">
-                  Link your accounts to get better rankings and insights
-                </p>
-              </div>
-
-              {/* Accounts List */}
-              <div className="space-y-3 pt-1">
-                {accounts.map((acc) => (
-                  <div 
-                    key={acc.id}
-                    className="p-4 rounded-2xl bg-white border border-[#E2EAF5] flex items-center justify-between gap-4 hover:border-[#CBD8EB] transition shadow-2xs"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-center font-bold text-[#15264B] text-sm">
-                        {acc.name[0]}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-sm text-[#15264B]">{acc.name}</h3>
-                        <div className="text-xs text-[#687793]">
-                          {acc.connected 
-                            ? `Connected${acc.handle ? ` • ${acc.handle}` : ''}`
-                            : 'Not connected'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {acc.connected ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full border border-[#B9EED9]">
-                          <Check className="w-3 h-3 stroke-[3]" /> Connected
-                        </span>
-                      ) : (
-                        <span className="text-[11px] text-[#687793] font-medium hidden sm:inline">
-                          Not connected
-                        </span>
-                      )}
-
-                      <button
-                        onClick={() => toggleConnection(acc.id)}
-                        className={`text-xs font-bold px-3 py-1 rounded-full border transition cursor-pointer ${
-                          acc.connected 
-                            ? 'text-[#15264B] border-[#E2EAF5] hover:bg-[#F5F8FF]' 
-                            : 'bg-[#15264B] text-white border-[#15264B] hover:bg-[#0D1933]'
-                        }`}
-                      >
-                        {acc.connected ? 'Manage' : 'Connect'}
-                      </button>
-                    </div>
+        <div className="md:col-span-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSubTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-6"
+            >
+              {/* TAB 1: CONNECTED ACCOUNTS matching Screen 9 */}
+              {activeSubTab === 'connected' && (
+                <Card className="p-6 sm:p-8 space-y-6">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
+                      Connected Accounts
+                    </h2>
+                    <p className="text-xs text-[#687793] mt-0.5">
+                      Link your accounts to get better rankings and insights
+                    </p>
                   </div>
-                ))}
-              </div>
 
-              {/* Security Notice Box matching Panel 9 */}
-              <div className="p-4 rounded-2xl bg-[#EAF3FF] border border-[#D2E4FC] flex items-start gap-3">
-                <Info className="w-4 h-4 text-[#1D4ED8] shrink-0 mt-0.5" />
-                <p className="text-xs text-[#1D4ED8] leading-relaxed">
-                  Your data is secure. We only access what you allow and use it to improve your rankings and provide better opportunities. Persistent OAuth and real database persistence will automatically activate when backend services connect.
-                </p>
-              </div>
-            </Card>
-          )}
+                  {/* Accounts List */}
+                  <div className="space-y-3 pt-1">
+                    {accounts.map((acc, idx) => (
+                      <motion.div 
+                        key={acc.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25, delay: idx * 0.05 }}
+                        whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                        className="p-4 rounded-2xl bg-white border border-[#E2EAF5] flex items-center justify-between gap-4 hover:border-[#CBD8EB] transition shadow-2xs"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-center font-bold text-[#15264B] text-sm">
+                            {acc.name[0]}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-sm text-[#15264B]">{acc.name}</h3>
+                            <div className="text-xs text-[#687793]">
+                              {acc.connected 
+                                ? `Connected${acc.handle ? ` • ${acc.handle}` : ''}`
+                                : 'Not connected'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {acc.connected ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full border border-[#B9EED9]">
+                              <Check className="w-3 h-3 stroke-[3]" /> Connected
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-[#687793] font-medium hidden sm:inline">
+                              Not connected
+                            </span>
+                          )}
+
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => toggleConnection(acc.id)}
+                            className={`text-xs font-bold px-3 py-1 rounded-full border transition cursor-pointer ${
+                              acc.connected 
+                                ? 'text-[#15264B] border-[#E2EAF5] hover:bg-[#F5F8FF]' 
+                                : 'bg-[#15264B] text-white border-[#15264B] hover:bg-[#0D1933]'
+                            }`}
+                          >
+                            {acc.connected ? 'Manage' : 'Connect'}
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  {/* Security Notice Box matching Panel 9 */}
+                  <div className="p-4 rounded-2xl bg-[#EAF3FF] border border-[#D2E4FC] flex items-start gap-3">
+                    <Info className="w-4 h-4 text-[#1D4ED8] shrink-0 mt-0.5" />
+                    <p className="text-xs text-[#1D4ED8] leading-relaxed">
+                      Your data is secure. We only access what you allow and use it to improve your rankings and provide better opportunities. Persistent OAuth and real database persistence will automatically activate when backend services connect.
+                    </p>
+                  </div>
+                </Card>
+              )}
 
           {/* TAB 2: ACCOUNT SETTINGS */}
           {activeSubTab === 'account' && (
@@ -196,6 +219,45 @@ export function SettingsPage() {
                 <p className="text-xs text-[#687793] mt-0.5">
                   Update your public developer identity and headline
                 </p>
+              </div>
+
+              {/* Onboarding Status & Setup Card */}
+              <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                onboardingStatus.isCompleted 
+                  ? 'bg-[#E8F8F0] border-[#A7F3D0] text-[#065F46]'
+                  : 'bg-[#FFF8DC] border-[#FFE89A] text-[#92400E]'
+              }`}>
+                <div className="flex items-start gap-2.5">
+                  <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+                  <div>
+                    <h4 className="font-bold text-xs">
+                      {onboardingStatus.isCompleted ? 'Developer Onboarding: Completed' : 'Developer Onboarding: Pending'}
+                    </h4>
+                    <p className="text-[11px] opacity-90 mt-0.5">
+                      {onboardingStatus.isCompleted 
+                        ? `Profile linked to Clerk user. Skills and country verified for @${profile.username || 'developer'}.`
+                        : 'Complete your onboarding flow to unlock verified ranking calculation.'}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => navigate(onboardingStatus.isCompleted ? '/onboarding?mode=edit' : '/onboarding')}
+                  className="shrink-0 text-xs flex items-center gap-1.5"
+                >
+                  <span>{onboardingStatus.isCompleted ? 'Edit via Onboarding Flow' : 'Complete Setup Now'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* Persistence Status Notice */}
+              <div className="p-3 bg-[#F8FAFC] border border-[#E2EAF5] rounded-xl flex items-center gap-2 text-[11px] text-[#64748B]">
+                <Info className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
+                <span>
+                  <strong>Persistence Status:</strong> {persistenceInfo.message || 'Saved via Rankora Development Profile Store (tied to Clerk auth session).'}
+                </span>
               </div>
 
               <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -395,6 +457,8 @@ export function SettingsPage() {
             </Card>
           )}
 
+            </motion.div>
+          </AnimatePresence>
         </div>
 
       </div>

@@ -132,6 +132,110 @@ app.get('/api/v1/hiring/matches', (req, res) => {
   });
 });
 
+// In-memory Onboarding Profile Store
+const ONBOARDING_PROFILES = new Map();
+
+// Helper to check username uniqueness
+function isUsernameTaken(username, excludeClerkUserId = null) {
+  const normalized = username.trim().toLowerCase();
+  for (const [userId, profile] of ONBOARDING_PROFILES.entries()) {
+    if (excludeClerkUserId && userId === excludeClerkUserId) continue;
+    if (profile.username && profile.username.toLowerCase() === normalized) {
+      return true;
+    }
+  }
+  return SAMPLE_DEVELOPERS.some(d => d.username.toLowerCase() === normalized);
+}
+
+// GET /api/v1/onboarding/check-username/:username
+app.get('/api/v1/onboarding/check-username/:username', (req, res) => {
+  const { username } = req.params;
+  const { excludeUserId } = req.query;
+  const usernameRegex = /^[a-zA-Z0-9_-]{3,24}$/;
+
+  if (!usernameRegex.test(username)) {
+    return res.status(400).json({
+      valid: false,
+      available: false,
+      message: 'Username must be 3-24 characters containing only letters, numbers, underscores, or dashes.'
+    });
+  }
+
+  const taken = isUsernameTaken(username, excludeUserId);
+  res.json({
+    valid: true,
+    available: !taken,
+    username,
+    message: taken ? 'Username is already claimed.' : 'Username is available.'
+  });
+});
+
+// GET /api/v1/onboarding/profile
+app.get('/api/v1/onboarding/profile', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const userId = req.query.userId || (authHeader ? authHeader.replace(/^Bearer\s+/, '') : null);
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required. Missing user identity.' });
+  }
+
+  const profile = ONBOARDING_PROFILES.get(userId);
+  if (!profile) {
+    return res.json({ completed: false, profile: null });
+  }
+
+  res.json({
+    completed: true,
+    profile
+  });
+});
+
+// POST /api/v1/onboarding/complete
+app.post('/api/v1/onboarding/complete', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const { clerkUserId, profileData } = req.body;
+  const verifiedUserId = clerkUserId || (authHeader ? authHeader.replace(/^Bearer\s+/, '') : null);
+
+  if (!verifiedUserId) {
+    return res.status(401).json({ error: 'Authorization failed: Missing verified authenticated user ID.' });
+  }
+
+  if (!profileData || !profileData.displayName || !profileData.username || !profileData.country) {
+    return res.status(400).json({ error: 'Missing required onboarding fields (displayName, username, country).' });
+  }
+
+  if (isUsernameTaken(profileData.username, verifiedUserId)) {
+    return res.status(409).json({ error: 'The selected username is already taken by another developer.' });
+  }
+
+  const record = {
+    clerkUserId: verifiedUserId,
+    displayName: profileData.displayName.trim(),
+    username: profileData.username.trim().toLowerCase(),
+    country: profileData.country.trim(),
+    headline: profileData.headline?.trim() || '',
+    experienceLevel: profileData.experienceLevel || 'Fresher / Student (0-1 yrs)',
+    interests: Array.isArray(profileData.interests) ? profileData.interests : [],
+    skills: Array.isArray(profileData.skills) ? profileData.skills.map(s => typeof s === 'string' ? { name: s, level: 'User-Reported', verified: false } : s) : [],
+    githubHandle: profileData.githubHandle?.trim() || '',
+    portfolioUrl: profileData.portfolioUrl?.trim() || '',
+    linkedinUrl: profileData.linkedinUrl?.trim() || '',
+    leetcodeHandle: profileData.leetcodeHandle?.trim() || '',
+    visibility: profileData.visibility || 'public',
+    consentAccepted: !!profileData.consentAccepted,
+    completedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  ONBOARDING_PROFILES.set(verifiedUserId, record);
+
+  res.status(200).json({
+    success: true,
+    message: 'Developer onboarding completed successfully.',
+    profile: record
+  });
+});
+
 // POST /api/v1/reports
 app.post('/api/v1/reports', (req, res) => {
   const { developerId, reason, evidenceCorrection } = req.body;

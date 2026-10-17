@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { CURRENT_USER, GROWTH_HISTORY } from '../lib/mockData';
+import { useDeveloperProfile } from '../context/DeveloperProfileContext';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { FilterBar } from '../components/common/FilterBar';
 import { AchievementBadge } from '../components/common/AchievementBadge';
 import { SkillBadge } from '../components/common/SkillBadge';
-import { ProgressBar } from '../components/common/ProgressBar';
-import { Award, CheckCircle2, ChevronRight, X, ExternalLink } from 'lucide-react';
+import { Award, ChevronRight, X } from 'lucide-react';
 
 export function SkillsPage() {
   const [tab, setTab] = useState('Skills');
   const [timeRange, setTimeRange] = useState('6M');
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [selectedBadge, setSelectedBadge] = useState(null);
-  const user = CURRENT_USER;
+  const { profile } = useDeveloperProfile();
+  const user = profile || CURRENT_USER;
 
   const tabs = ['Skills', 'Badges', 'Certificates'];
   const timeRanges = ['1M', '3M', '6M', '1Y'];
@@ -60,117 +62,158 @@ export function SkillsPage() {
             onSelect={setTab}
           />
 
-          {/* TAB 1: SKILLS */}
-          {tab === 'Skills' && (
-            <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {skillsList.map((skill) => (
-                  <SkillBadge
-                    key={skill.name}
-                    name={skill.name}
-                    level={skill.level}
-                    variant="card"
-                    onClick={() => setSelectedSkill(skill)}
-                  />
-                ))}
-              </div>
-
-              <div className="text-xs text-[#1D4ED8] font-bold cursor-pointer hover:underline pl-1 flex items-center gap-1">
-                <span>+ 2 more skills evaluated</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </div>
-
-              {/* Achievement Badges Section */}
-              <Card className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-[#15264B]">
-                    Achievement Badges
-                  </h2>
-                  <button 
-                    onClick={() => setTab('Badges')}
-                    className="text-xs text-[#1D4ED8] font-semibold hover:underline"
-                  >
-                    View All
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {user.badges.slice(0, 4).map((b) => (
-                    <AchievementBadge
-                      key={b.id}
-                      title={b.title}
-                      icon={b.icon}
-                      colorScheme={b.colorScheme}
-                      onClick={() => setSelectedBadge(b)}
-                    />
+          <AnimatePresence mode="wait">
+            {/* TAB 1: SKILLS */}
+            {tab === 'Skills' && (
+              <motion.div 
+                key="skills-tab"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="space-y-5"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {skillsList.map((skill, index) => (
+                    <motion.div
+                      key={skill.name}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.25, delay: index * 0.05 }}
+                      whileHover={{ y: -3, scale: 1.015 }}
+                    >
+                      <SkillBadge
+                        name={skill.name}
+                        level={skill.level}
+                        variant="card"
+                        onClick={() => setSelectedSkill(skill)}
+                      />
+                    </motion.div>
                   ))}
                 </div>
-              </Card>
-            </div>
-          )}
 
-          {/* TAB 2: BADGES */}
-          {tab === 'Badges' && (
-            <Card className="p-6 space-y-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base text-[#15264B]">Verified Badges & Medallions</h3>
-                  <p className="text-xs text-[#687793]">Earned through verifiable evaluations and problem streaks.</p>
+                <div className="text-xs text-[#1D4ED8] font-bold cursor-pointer hover:underline pl-1 flex items-center gap-1">
+                  <span>+ 2 more skills evaluated</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
-                {user.badges.map((b) => (
-                  <div
-                    key={b.id}
-                    onClick={() => setSelectedBadge(b)}
-                    className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] text-center flex flex-col items-center justify-center space-y-2 hover:border-[#CBD8EB] cursor-pointer transition group"
-                  >
-                    <div className="w-14 h-14 rounded-full bg-white border border-[#E2EAF5] flex items-center justify-center text-3xl shadow-xs group-hover:scale-105 transition-transform">
-                      {b.icon}
-                    </div>
-                    <div className="text-xs font-bold text-[#15264B] leading-tight">
-                      {b.title}
-                    </div>
-                    <span className="text-[10px] text-[#059669] font-bold bg-[#E4F8EF] px-2 py-0.5 rounded-full">
-                      {b.date}
-                    </span>
+                {/* Achievement Badges Section */}
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-base font-bold text-[#15264B]">
+                      Achievement Badges
+                    </h2>
+                    <button 
+                      onClick={() => setTab('Badges')}
+                      className="text-xs text-[#1D4ED8] font-semibold hover:underline cursor-pointer"
+                    >
+                      View All
+                    </button>
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
 
-          {/* TAB 3: CERTIFICATES */}
-          {tab === 'Certificates' && (
-            <Card className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-base text-[#15264B]">External Verified Credentials</h3>
-                  <p className="text-xs text-[#687793]">Synced and algorithmically verified from issuing platforms.</p>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {certificatesList.map((cert) => (
-                  <div key={cert.id} className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white border border-[#E2EAF5] flex items-center justify-center text-[#15264B] font-bold">
-                        <Award className="w-5 h-5 text-[#3B82F6]" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-xs sm:text-sm text-[#15264B]">{cert.title}</h4>
-                        <p className="text-[11px] text-[#687793]">{cert.issuer} • Issued {cert.date}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono text-[#687793] bg-white px-2.5 py-1 rounded-full border border-[#E2EAF5]">
-                      {cert.credentialId}
-                    </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {user.badges.slice(0, 4).map((b) => (
+                      <AchievementBadge
+                        key={b.id}
+                        title={b.title}
+                        icon={b.icon}
+                        colorScheme={b.colorScheme}
+                        onClick={() => setSelectedBadge(b)}
+                      />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Card>
-          )}
+                </Card>
+              </motion.div>
+            )}
+
+            {/* TAB 2: BADGES */}
+            {tab === 'Badges' && (
+              <motion.div
+                key="badges-tab"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Card className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-base text-[#15264B]">Verified Badges & Medallions</h3>
+                      <p className="text-xs text-[#687793]">Earned through verifiable evaluations and problem streaks.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+                    {user.badges.map((b, index) => (
+                      <motion.div
+                        key={b.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25, delay: index * 0.05 }}
+                        whileHover={{ y: -4, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setSelectedBadge(b)}
+                        className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] text-center flex flex-col items-center justify-center space-y-2 hover:border-[#CBD8EB] cursor-pointer transition-shadow shadow-2xs group"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-white border border-[#E2EAF5] flex items-center justify-center text-3xl shadow-xs group-hover:scale-110 transition-transform duration-200">
+                          {b.icon}
+                        </div>
+                        <div className="text-xs font-bold text-[#15264B] leading-tight">
+                          {b.title}
+                        </div>
+                        <span className="text-[10px] text-[#059669] font-bold bg-[#E4F8EF] px-2 py-0.5 rounded-full">
+                          {b.date}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+
+            {/* TAB 3: CERTIFICATES */}
+            {tab === 'Certificates' && (
+              <motion.div
+                key="certificates-tab"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <Card className="p-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-base text-[#15264B]">External Verified Credentials</h3>
+                      <p className="text-xs text-[#687793]">Synced and algorithmically verified from issuing platforms.</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    {certificatesList.map((cert) => (
+                      <motion.div 
+                        key={cert.id}
+                        whileHover={{ y: -2, scale: 1.01 }}
+                        className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between gap-4 transition-shadow shadow-2xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white border border-[#E2EAF5] flex items-center justify-center text-[#15264B] font-bold">
+                            <Award className="w-5 h-5 text-[#3B82F6]" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-xs sm:text-sm text-[#15264B]">{cert.title}</h4>
+                            <p className="text-[11px] text-[#687793]">{cert.issuer} • Issued {cert.date}</p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono text-[#687793] bg-white px-2.5 py-1 rounded-full border border-[#E2EAF5]">
+                          {cert.credentialId}
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
         </div>
 
@@ -251,112 +294,149 @@ export function SkillsPage() {
             ))}
           </div>
 
-          {/* Motivational Cheer Box matching Screen 4 */}
-          <div className="p-3.5 rounded-2xl bg-[#FFF8DC] border border-[#FFE89A] flex items-center gap-3">
-            <div className="text-2xl">🏃</div>
+          {/* Motivational Cheer Box matching Screen 4 with fluid bounce */}
+          <motion.div 
+            whileHover={{ scale: 1.02 }}
+            className="p-3.5 rounded-2xl bg-[#FFF8DC] border border-[#FFE89A] flex items-center gap-3 cursor-pointer shadow-2xs"
+          >
+            <motion.div 
+              animate={{ x: [0, 4, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              className="text-2xl"
+            >
+              🏃
+            </motion.div>
             <div className="text-xs">
               <div className="font-bold text-[#B45309]">Keep going!</div>
               <div className="text-[#92400E] text-[11px]">You're in the top 1% globally! 🚀</div>
             </div>
-          </div>
+          </motion.div>
 
         </Card>
 
       </div>
 
-      {/* Skill Detail Modal */}
-      {selectedSkill && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E2EAF5] space-y-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-center font-bold text-[#15264B]">
-                  {selectedSkill.name[0]}
+      {/* Skill Detail Modal with Fluid Spring */}
+      <AnimatePresence>
+        {selectedSkill && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedSkill(null)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E2EAF5] space-y-4 relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-center font-bold text-[#15264B]">
+                    {selectedSkill.name[0]}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-[#15264B]">{selectedSkill.name}</h3>
+                    <span className="text-xs text-[#059669] font-bold">{selectedSkill.level} Proficiency</span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-bold text-[#15264B]">{selectedSkill.name}</h3>
-                  <span className="text-xs text-[#059669] font-bold">{selectedSkill.level} Proficiency</span>
+                <button 
+                  onClick={() => setSelectedSkill(null)}
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 py-2 text-center">
+                <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
+                  <div className="text-lg font-black text-[#15264B]">{selectedSkill.score}</div>
+                  <div className="text-[10px] text-[#687793]">Skill Rating</div>
+                </div>
+                <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
+                  <div className="text-lg font-black text-[#15264B]">{selectedSkill.repos}</div>
+                  <div className="text-[10px] text-[#687793]">Repositories</div>
+                </div>
+                <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
+                  <div className="text-lg font-black text-[#15264B]">{selectedSkill.problemsSolved}</div>
+                  <div className="text-[10px] text-[#687793]">Problems</div>
                 </div>
               </div>
-              <button 
-                onClick={() => setSelectedSkill(null)}
-                className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2 py-2 text-center">
-              <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
-                <div className="text-lg font-black text-[#15264B]">{selectedSkill.score}</div>
-                <div className="text-[10px] text-[#687793]">Skill Rating</div>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
-                <div className="text-lg font-black text-[#15264B]">{selectedSkill.repos}</div>
-                <div className="text-[10px] text-[#687793]">Repositories</div>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5]">
-                <div className="text-lg font-black text-[#15264B]">{selectedSkill.problemsSolved}</div>
-                <div className="text-[10px] text-[#687793]">Problems</div>
-              </div>
-            </div>
+              <p className="text-xs text-[#687793] leading-relaxed">
+                Demonstrated through consistent commits, challenge solutions, and verified production code audits.
+              </p>
 
-            <p className="text-xs text-[#687793] leading-relaxed">
-              Demonstrated through consistent commits, challenge solutions, and verified production code audits.
-            </p>
-
-            <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedSkill(null)}>
-              Close
-            </Button>
+              <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedSkill(null)}>
+                Close
+              </Button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* Badge Detail Modal */}
-      {selectedBadge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div 
-            className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-[#E2EAF5] space-y-4 text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-end">
-              <button 
-                onClick={() => setSelectedBadge(null)}
-                className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Badge Detail Modal with Fluid Spring */}
+      <AnimatePresence>
+        {selectedBadge && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedBadge(null)}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
+            />
 
-            <div className="w-16 h-16 rounded-full bg-[#FFF8DC] border border-[#FFE89A] flex items-center justify-center mx-auto text-3xl shadow-sm">
-              {selectedBadge.icon}
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
+              transition={{ type: "spring", damping: 25, stiffness: 350 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-[#E2EAF5] space-y-4 text-center relative z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => setSelectedBadge(null)}
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            <div>
-              <h3 className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
-              <span className="text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full inline-block mt-1">
-                {selectedBadge.date || "Verified Achievement"}
-              </span>
-            </div>
+              <div className="w-16 h-16 rounded-full bg-[#FFF8DC] border border-[#FFE89A] flex items-center justify-center mx-auto text-3xl shadow-sm">
+                {selectedBadge.icon}
+              </div>
 
-            <p className="text-xs text-[#687793] leading-relaxed">
-              {selectedBadge.desc}
-            </p>
+              <div>
+                <h3 className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
+                <span className="text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full inline-block mt-1">
+                  {selectedBadge.date || "Verified Achievement"}
+                </span>
+              </div>
 
-            <div className="p-3 bg-[#F5F8FF] rounded-2xl border border-[#E2EAF5] text-left text-xs space-y-1">
-              <span className="font-bold text-[#15264B]">Evaluation Criteria:</span>
-              <p className="text-[#687793]">{selectedBadge.criteria}</p>
-            </div>
+              <p className="text-xs text-[#687793] leading-relaxed">
+                {selectedBadge.desc}
+              </p>
 
-            <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedBadge(null)}>
-              Close
-            </Button>
+              <div className="p-3 bg-[#F5F8FF] rounded-2xl border border-[#E2EAF5] text-left text-xs space-y-1">
+                <span className="font-bold text-[#15264B]">Evaluation Criteria:</span>
+                <p className="text-[#687793]">{selectedBadge.criteria}</p>
+              </div>
+
+              <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedBadge(null)}>
+                Close
+              </Button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
     </div>
   );

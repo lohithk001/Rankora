@@ -9,8 +9,7 @@ import {
   Briefcase, 
   Settings, 
   ChevronDown, 
-  Sliders,
-  MoreHorizontal
+  Sliders
 } from 'lucide-react';
 import { LeagueBadge } from '../common/LeagueBadge';
 import { SAMPLE_DEVELOPERS } from '../../lib/mockData';

@@ -1,24 +1,24 @@
 import React from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
+function CustomTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl text-xs font-mono">
+        <p className="text-slate-400 font-sans mb-1 font-semibold">{label}</p>
+        <div className="space-y-1">
+          <p className="text-cyan-400 font-bold">Overall Score: {payload[0].value}</p>
+          {payload[1] && <p className="text-indigo-400">Problem Solving: {payload[1].value}</p>}
+          {payload[2] && <p className="text-purple-400">Engineering: {payload[2].value}</p>}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function GrowthTrajectoryChart({ data }) {
   if (!data || data.length === 0) return null;
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900/95 border border-slate-700 p-3 rounded-xl shadow-2xl text-xs font-mono">
-          <p className="text-slate-400 font-sans mb-1 font-semibold">{label}</p>
-          <div className="space-y-1">
-            <p className="text-cyan-400 font-bold">Overall Score: {payload[0].value}</p>
-            {payload[1] && <p className="text-indigo-400">Problem Solving: {payload[1].value}</p>}
-            {payload[2] && <p className="text-purple-400">Engineering: {payload[2].value}</p>}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="w-full h-[220px] min-h-[220px]">

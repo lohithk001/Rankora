@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Scale, Terminal, Heart, ArrowUpRight } from 'lucide-react';
+import { Scale, ArrowUpRight } from 'lucide-react';
 
 export function Footer({ onOpenFormula, setCurrentTab }) {
   return (

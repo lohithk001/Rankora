@@ -6,7 +6,7 @@ import { cn } from '../../lib/utils';
 export function MobileNav() {
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/leaderboard', label: 'Ranks', icon: Trophy },
+    { path: '/app/leaderboard', label: 'Ranks', icon: Trophy },
     { path: '/profile', label: 'Profile', icon: User },
     { path: '/skills', label: 'Skills', icon: Award },
     { path: '/hiring', label: 'Hiring', icon: Briefcase },

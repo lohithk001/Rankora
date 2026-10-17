@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export function ConfidencePill({ confidence = 85, isProvisional = false }) {
   let colorClass = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30';

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { Trophy, Award, Star, Heart, GitBranch, Sparkles } from 'lucide-react';
 
@@ -17,7 +18,6 @@ export function AchievementBadge({
   icon,
   colorScheme = 'amber', // 'amber', 'teal', 'orange', 'purple', 'emerald', 'yellow'
   onClick,
-  size = 'md',
   className
 }) {
   const IconComponent = typeof icon === 'string' && ICON_MAP[icon] ? ICON_MAP[icon] : null;
@@ -32,18 +32,24 @@ export function AchievementBadge({
   };
 
   return (
-    <div 
+    <motion.div 
       onClick={onClick}
+      whileHover={onClick ? { y: -3 } : undefined}
+      whileTap={onClick ? { scale: 0.96 } : undefined}
       className={cn(
-        "flex flex-col items-center text-center p-2 group transition-all",
-        onClick && "cursor-pointer hover:-translate-y-0.5",
+        "flex flex-col items-center text-center p-2 group select-none",
+        onClick && "cursor-pointer",
         className
       )}
     >
-      <div className={cn(
-        "w-12 h-12 rounded-full border flex items-center justify-center shadow-xs mb-2 transition-transform group-hover:scale-105",
-        colorStyles[colorScheme] || colorStyles.amber
-      )}>
+      <motion.div 
+        whileHover={{ scale: 1.12, rotate: [0, -5, 5, 0] }}
+        transition={{ type: "spring", stiffness: 350, damping: 20 }}
+        className={cn(
+          "w-12 h-12 rounded-full border flex items-center justify-center shadow-xs mb-2",
+          colorStyles[colorScheme] || colorStyles.amber
+        )}
+      >
         {IconComponent ? (
           <IconComponent className="w-5 h-5" />
         ) : typeof icon === 'string' ? (
@@ -51,13 +57,13 @@ export function AchievementBadge({
         ) : (
           icon || <Award className="w-5 h-5" />
         )}
-      </div>
+      </motion.div>
       <span className="text-xs font-bold text-[#15264B] leading-tight max-w-[90px]">
         {title}
       </span>
       {subtitle && (
         <span className="text-[10px] text-[#687793] mt-0.5">{subtitle}</span>
       )}
-    </div>
+    </motion.div>
   );
 }

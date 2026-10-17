@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { cn } from '../../lib/utils';
 
 export function ProgressBar({
@@ -36,9 +37,11 @@ export function ProgressBar({
         </div>
       )}
       <div className="w-full h-2.5 bg-[#EEF2F6] rounded-full overflow-hidden p-0.5">
-        <div
-          className={cn("h-full rounded-full transition-all duration-500 ease-out", colorStyles[color] || colorStyles.mint)}
-          style={{ width: `${percentage}%` }}
+        <motion.div
+          className={cn("h-full rounded-full", colorStyles[color] || colorStyles.mint)}
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
     </div>

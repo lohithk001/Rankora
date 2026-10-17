@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sliders, Calculator, ShieldCheck, Info } from 'lucide-react';
+import { X, Sliders, Calculator, ShieldCheck } from 'lucide-react';
 
 export function FormulaModal({ isOpen, onClose }) {
   const [p, setP] = useState(90);

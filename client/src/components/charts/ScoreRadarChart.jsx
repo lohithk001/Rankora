@@ -1,6 +1,18 @@
 import React from 'react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 
+function CustomTooltip({ active, payload }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900/95 border border-slate-700 p-2.5 rounded-lg shadow-xl text-xs font-mono">
+        <p className="text-white font-semibold">{payload[0].payload.subject}</p>
+        <p className="text-cyan-400 font-bold mt-0.5">{payload[0].value} / 100</p>
+      </div>
+    );
+  }
+  return null;
+}
+
 export function ScoreRadarChart({ components }) {
   if (!components) return null;
 
@@ -11,18 +23,6 @@ export function ScoreRadarChart({ components }) {
     { subject: 'Collaboration', value: components.collaboration || 0, fullMark: 100 },
     { subject: 'Growth Velocity', value: components.growthConsistency || 0, fullMark: 100 },
   ];
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900/95 border border-slate-700 p-2.5 rounded-lg shadow-xl text-xs font-mono">
-          <p className="text-white font-semibold">{payload[0].payload.subject}</p>
-          <p className="text-cyan-400 font-bold mt-0.5">{payload[0].value} / 100</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="w-full h-[260px] flex items-center justify-center min-h-[260px]">

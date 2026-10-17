@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { motion } from 'motion/react';
 import { CURRENT_USER } from '../lib/mockData';
+import { useDeveloperProfile } from '../context/DeveloperProfileContext';
 import { Card } from '../components/ui/Card';
 import { ProgressBar } from '../components/common/ProgressBar';
 
 export function GrowthDashboard() {
   const [timeRange, setTimeRange] = useState('6M');
-  const user = CURRENT_USER;
+  const { profile } = useDeveloperProfile();
+  const user = profile || CURRENT_USER;
 
   const timeRanges = ['1M', '3M', '6M', '1Y'];
 
@@ -49,11 +52,23 @@ export function GrowthDashboard() {
     ];
   }, [timeRange]);
 
+  const metricCards = [
+    { label: 'Projects', value: user.stats.projects, sub: user.stats.projectsNew, subColor: 'text-[#059669]' },
+    { label: 'Assessments', value: user.stats.assessments, sub: user.stats.assessmentsCompleted, subColor: 'text-[#059669]' },
+    { label: 'Repositories', value: user.stats.repositories, sub: user.stats.repositoriesNew, subColor: 'text-[#059669]' },
+    { label: 'Streak', value: `${user.stats.streakDays} days`, sub: user.stats.streakMessage, subColor: 'text-[#D97706]' },
+  ];
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       
       {/* Header matching Panel 7 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <motion.div 
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#15264B] tracking-tight">
             Growth Dashboard
@@ -66,8 +81,9 @@ export function GrowthDashboard() {
         {/* Time range pills */}
         <div className="flex items-center gap-1 bg-white p-1 rounded-full text-xs font-semibold border border-[#E2EAF5] shadow-2xs">
           {timeRanges.map((tr) => (
-            <button
+            <motion.button
               key={tr}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setTimeRange(tr)}
               className={`px-3 py-1 rounded-full transition cursor-pointer ${
                 timeRange === tr 
@@ -76,126 +92,114 @@ export function GrowthDashboard() {
               }`}
             >
               {tr}
-            </button>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Top 2 Cards Row: Overall Score Area Chart & Skill Progress Bars */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* Left Card: Overall Score Chart (7 Cols) */}
-        <Card className="lg:col-span-7 p-6 flex flex-col justify-between space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-[#15264B]">
-                Overall Score
-              </h2>
-              <span className="text-xs text-[#687793]">Signal trajectory across evaluations</span>
+        <motion.div 
+          className="lg:col-span-7 flex"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <Card className="w-full p-6 flex flex-col justify-between space-y-4 hover:border-[#CBD8EB] transition-all">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-[#15264B]">
+                  Overall Score
+                </h2>
+                <span className="text-xs text-[#687793]">Signal trajectory across evaluations</span>
+              </div>
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#E4F8EF] text-[#059669] font-bold text-xs border border-[#B9EED9]">
+                ↑ 7%
+              </div>
             </div>
-            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#E4F8EF] text-[#059669] font-bold text-xs border border-[#B9EED9]">
-              ↑ 7%
-            </div>
-          </div>
 
-          <div className="h-60 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="scoreGreenGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4CC9A6" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#4CC9A6" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="month" stroke="#687793" fontSize={11} tickLine={false} />
-                <YAxis domain={['dataMin - 40', 'dataMax + 40']} stroke="#687793" fontSize={11} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2EAF5', borderRadius: '12px', fontSize: '12px', boxShadow: '0 4px 20px rgba(21,38,75,0.06)' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="score" 
-                  stroke="#4CC9A6" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#scoreGreenGrad)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
+            <div className="h-60 w-full pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="scoreGreenGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4CC9A6" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#4CC9A6" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" stroke="#687793" fontSize={11} tickLine={false} />
+                  <YAxis domain={['dataMin - 40', 'dataMax + 40']} stroke="#687793" fontSize={11} tickLine={false} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#FFFFFF', borderColor: '#E2EAF5', borderRadius: '12px', fontSize: '12px', boxShadow: '0 4px 20px rgba(21,38,75,0.06)' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="score" 
+                    stroke="#4CC9A6" 
+                    strokeWidth={3} 
+                    fillOpacity={1} 
+                    fill="url(#scoreGreenGrad)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </motion.div>
 
         {/* Right Card: Skill Progress Bars (5 Cols) */}
-        <Card className="lg:col-span-5 p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-[#15264B]">
-              Skill Progress
-            </h2>
-            <span className="text-xs text-[#687793]">Percentiles</span>
-          </div>
+        <motion.div 
+          className="lg:col-span-5 flex"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.1 }}
+        >
+          <Card className="w-full p-6 space-y-4 hover:border-[#CBD8EB] transition-all">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-[#15264B]">
+                Skill Progress
+              </h2>
+              <span className="text-xs text-[#687793]">Percentiles</span>
+            </div>
 
-          <div className="space-y-4 pt-1">
-            {user.skillsBreakdown.map((item) => (
-              <ProgressBar
-                key={item.name}
-                label={item.name}
-                score={item.score}
-                value={item.score}
-                color={item.color}
-              />
-            ))}
-          </div>
-        </Card>
+            <div className="space-y-4 pt-1">
+              {user.skillsBreakdown.map((item) => (
+                <ProgressBar
+                  key={item.name}
+                  label={item.name}
+                  score={item.score}
+                  value={item.score}
+                  color={item.color}
+                />
+              ))}
+            </div>
+          </Card>
+        </motion.div>
 
       </div>
 
       {/* Bottom 4 Metric Summary Cards matching Panel 7 */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        
-        {/* Projects */}
-        <Card className="p-5 space-y-1">
-          <div className="text-xs text-[#687793] font-semibold">Projects</div>
-          <div className="text-2xl sm:text-3xl font-black text-[#15264B]">
-            {user.stats.projects}
-          </div>
-          <div className="text-[11px] font-bold text-[#059669]">
-            {user.stats.projectsNew}
-          </div>
-        </Card>
-
-        {/* Assessments */}
-        <Card className="p-5 space-y-1">
-          <div className="text-xs text-[#687793] font-semibold">Assessments</div>
-          <div className="text-2xl sm:text-3xl font-black text-[#15264B]">
-            {user.stats.assessments}
-          </div>
-          <div className="text-[11px] font-bold text-[#059669]">
-            {user.stats.assessmentsCompleted}
-          </div>
-        </Card>
-
-        {/* Repositories */}
-        <Card className="p-5 space-y-1">
-          <div className="text-xs text-[#687793] font-semibold">Repositories</div>
-          <div className="text-2xl sm:text-3xl font-black text-[#15264B]">
-            {user.stats.repositories}
-          </div>
-          <div className="text-[11px] font-bold text-[#059669]">
-            {user.stats.repositoriesNew}
-          </div>
-        </Card>
-
-        {/* Streak */}
-        <Card className="p-5 space-y-1">
-          <div className="text-xs text-[#687793] font-semibold">Streak</div>
-          <div className="text-2xl sm:text-3xl font-black text-[#15264B]">
-            {user.stats.streakDays} days
-          </div>
-          <div className="text-[11px] font-bold text-[#D97706]">
-            {user.stats.streakMessage}
-          </div>
-        </Card>
-
+        {metricCards.map((metric, idx) => (
+          <motion.div
+            key={metric.label}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 + idx * 0.06 }}
+            whileHover={{ y: -3, transition: { duration: 0.2 } }}
+          >
+            <Card className="p-5 space-y-1 hover:border-[#CBD8EB] transition-all">
+              <div className="text-xs text-[#687793] font-semibold">{metric.label}</div>
+              <div className="text-2xl sm:text-3xl font-black text-[#15264B]">
+                {metric.value}
+              </div>
+              <div className={`text-[11px] font-bold ${metric.subColor}`}>
+                {metric.sub}
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
     </div>
