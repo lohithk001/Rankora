@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart2, Info, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENT_USER } from '../lib/mockData';
@@ -13,6 +13,19 @@ export function MarketValuePage() {
   const [selectedRole, setSelectedRole] = useState('Software Engineer');
   const [selectedExp, setSelectedExp] = useState('0 - 2 years');
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowDetailsModal(false);
+      }
+    };
+    if (showDetailsModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDetailsModal]);
 
   // Dynamic salary ranges based on location & exp
   const salaryData = {
@@ -56,7 +69,8 @@ export function MarketValuePage() {
         <select
           value={selectedLocation}
           onChange={(e) => setSelectedLocation(e.target.value)}
-          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none transition"
+          aria-label="Filter by location"
+          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] transition"
         >
           <option value="Bengaluru, India">Bengaluru, India</option>
           <option value="Remote Global">Remote Global</option>
@@ -66,7 +80,8 @@ export function MarketValuePage() {
         <select
           value={selectedRole}
           onChange={(e) => setSelectedRole(e.target.value)}
-          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none transition"
+          aria-label="Filter by engineering role"
+          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] transition"
         >
           <option value="Software Engineer">Software Engineer</option>
           <option value="Backend Developer">Backend Developer</option>
@@ -77,7 +92,8 @@ export function MarketValuePage() {
         <select
           value={selectedExp}
           onChange={(e) => setSelectedExp(e.target.value)}
-          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none transition"
+          aria-label="Filter by years of experience"
+          className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] transition"
         >
           <option value="0 - 2 years">0 - 2 years</option>
           <option value="3 - 5 years">3 - 5 years</option>
@@ -125,13 +141,11 @@ export function MarketValuePage() {
               </div>
             </div>
 
-            {/* Cute Wallet & Coins Illustration */}
+            {/* Wallet & Coins Illustration */}
             <div className="md:col-span-4 flex justify-center md:justify-end">
-              <motion.img 
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              <img 
                 src="/wallet.jpg" 
-                alt="Compensation Wallet" 
+                alt="Market compensation illustration" 
                 className="w-36 h-36 sm:w-44 sm:h-44 object-contain rounded-2xl select-none" 
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
@@ -182,14 +196,12 @@ export function MarketValuePage() {
 
           <div className="flex flex-wrap gap-2 pt-1">
             {salaryRange.topSkills.map((sk) => (
-              <motion.span
+              <span
                 key={sk}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-3.5 py-1.5 rounded-full bg-[#EAF3FF] text-[#15264B] text-xs font-semibold border border-[#D2E4FC] hover:bg-[#dbeafe] cursor-pointer transition select-none"
+                className="px-3.5 py-1.5 rounded-full bg-[#EAF3FF] text-[#15264B] text-xs font-semibold border border-[#D2E4FC] select-none"
               >
                 {sk}
-              </motion.span>
+              </span>
             ))}
           </div>
         </Card>
@@ -209,11 +221,11 @@ export function MarketValuePage() {
       {/* Details Modal */}
       <AnimatePresence>
         {showDetailsModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="market-modal-title"
             onClick={() => setShowDetailsModal(false)}
           >
             <motion.div 
@@ -226,12 +238,13 @@ export function MarketValuePage() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-[#15264B]">Market Benchmark Insights</h3>
+                  <h3 id="market-modal-title" className="text-lg font-bold text-[#15264B]">Market Benchmark Insights</h3>
                   <p className="text-xs text-[#687793]">{selectedRole} • {selectedLocation}</p>
                 </div>
                 <button 
                   onClick={() => setShowDetailsModal(false)}
-                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close market insights"
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -249,11 +262,11 @@ export function MarketValuePage() {
                 </div>
               </div>
 
-              <Button variant="secondary" size="md" className="w-full" onClick={() => setShowDetailsModal(false)}>
+              <Button variant="secondary" size="md" className="w-full font-semibold" onClick={() => setShowDetailsModal(false)}>
                 Close
               </Button>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

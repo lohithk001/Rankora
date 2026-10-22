@@ -4,6 +4,8 @@ import { ClerkProvider } from '@clerk/react'
 import './index.css'
 import App from './App.jsx'
 import { ErrorBoundary } from './components/common/ErrorBoundary.jsx'
+import './lib/errorTracker.js'
+import './lib/analytics.js'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 

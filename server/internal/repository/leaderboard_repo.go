@@ -34,6 +34,10 @@ type LeaderboardRow struct {
 }
 
 func (r *LeaderboardRepository) GetLeaderboard(ctx context.Context, league, search string, limit, offset int) ([]LeaderboardRow, int, error) {
+	return r.GetLeaderboardExtended(ctx, league, search, "", "", limit, offset)
+}
+
+func (r *LeaderboardRepository) GetLeaderboardExtended(ctx context.Context, league, search, country, dimension string, limit, offset int) ([]LeaderboardRow, int, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 50
 	}
@@ -48,6 +52,12 @@ func (r *LeaderboardRepository) GetLeaderboard(ctx context.Context, league, sear
 	if league != "" && strings.ToLower(league) != "all" {
 		whereClauses = append(whereClauses, fmt.Sprintf("LOWER(league) = LOWER($%d)", argIndex))
 		args = append(args, league)
+		argIndex++
+	}
+
+	if country != "" && strings.ToLower(country) != "all" {
+		whereClauses = append(whereClauses, fmt.Sprintf("LOWER(country) = LOWER($%d)", argIndex))
+		args = append(args, country)
 		argIndex++
 	}
 
@@ -67,18 +77,30 @@ func (r *LeaderboardRepository) GetLeaderboard(ctx context.Context, league, sear
 		return nil, 0, err
 	}
 
+	orderBy := "score DESC, confidence DESC"
+	switch strings.ToLower(dimension) {
+	case "problem_solving", "competitive":
+		orderBy = "score DESC, confidence DESC"
+	case "engineering_quality", "backend":
+		orderBy = "score DESC"
+	case "technical_skills", "frontend":
+		orderBy = "score DESC, confidence DESC"
+	case "growth", "growth_consistency":
+		orderBy = "confidence DESC, score DESC"
+	}
+
 	// Data query with ROW_NUMBER() rank
 	dataQuery := fmt.Sprintf(`
 		SELECT 
-			ROW_NUMBER() OVER (ORDER BY score DESC, confidence DESC) as rank,
+			ROW_NUMBER() OVER (ORDER BY %s) as rank,
 			id::text, username, display_name, COALESCE(avatar_url, ''),
 			COALESCE(headline, ''), COALESCE(location, country), country,
 			league, score, confidence, is_provisional, interests, experience_level
 		FROM developer_profiles
 		WHERE %s
-		ORDER BY score DESC, confidence DESC
+		ORDER BY %s
 		LIMIT $%d OFFSET $%d
-	`, whereSQL, argIndex, argIndex+1)
+	`, orderBy, whereSQL, orderBy, argIndex, argIndex+1)
 
 	args = append(args, limit, offset)
 

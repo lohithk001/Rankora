@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useClerk } from '@clerk/react';
 import { 
   User, 
   Lock, 
@@ -7,33 +8,41 @@ import {
   Link2, 
   Download, 
   HelpCircle, 
-  Check, 
-  Info,
-  Trash2,
-  CheckCircle2,
-  Sparkles,
-  ArrowRight
+  Trash2, 
+  CheckCircle2, 
+  Sparkles, 
+  ArrowRight, 
+  LogOut, 
+  KeyRound, 
+  Shield, 
+  Loader2, 
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CURRENT_USER } from '../lib/mockData';
 import { useDeveloperProfile } from '../context/DeveloperProfileContext';
+import { analytics } from '../lib/analytics';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { profile, onboardingStatus, persistenceInfo } = useDeveloperProfile();
+  const { signOut, openUserProfile } = useClerk();
+  const { profile, onboardingStatus, deleteAccount } = useDeveloperProfile();
+  
   const [activeSubTab, setActiveSubTab] = useState('account');
   const [accounts, setAccounts] = useState(profile.connectedAccounts || CURRENT_USER.connectedAccounts);
   const [displayName, setDisplayName] = useState(profile.displayName || CURRENT_USER.displayName);
   const [roleTitle, setRoleTitle] = useState(profile.roleTitle || CURRENT_USER.roleTitle);
   const [headline, setHeadline] = useState(profile.headline || CURRENT_USER.headline);
   const [profileSuccess, setProfileSuccess] = useState(false);
+  const [formError, setFormError] = useState('');
 
   // Privacy toggles
   const [isPublic, setIsPublic] = useState(true);
   const [allowRecruiters, setAllowRecruiters] = useState(true);
+  const [telemetryEnabled, setTelemetryEnabled] = useState(() => analytics.isEnabled());
 
   // Notification toggles
   const [notifyRankChange, setNotifyRankChange] = useState(true);
@@ -42,6 +51,8 @@ export function SettingsPage() {
 
   // Confirm delete dialog state
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const subNavItems = [
     { id: 'account', label: 'Account', icon: User },
@@ -67,8 +78,53 @@ export function SettingsPage() {
 
   const handleSaveProfile = (e) => {
     e.preventDefault();
+    setFormError('');
+
+    // Frontend Form Validation
+    const cleanName = (displayName || '').trim();
+    if (!cleanName || cleanName.length < 2) {
+      setFormError('Display name must be at least 2 characters.');
+      return;
+    }
+
+    if (cleanName.length > 80) {
+      setFormError('Display name must be under 80 characters.');
+      return;
+    }
+
     setProfileSuccess(true);
     setTimeout(() => setProfileSuccess(false), 3000);
+  };
+
+  const handleToggleTelemetry = () => {
+    const nextVal = !telemetryEnabled;
+    setTelemetryEnabled(nextVal);
+    analytics.setConsent(nextVal, nextVal);
+  };
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut(() => navigate('/'));
+    } catch {
+      navigate('/');
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteAccount();
+      // Sign out after purging records
+      await signOut(() => navigate('/?account_deleted=true'));
+    } catch {
+      navigate('/?account_deleted=true');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
   };
 
   const handleExportData = () => {
@@ -82,7 +138,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-5xl mx-auto font-sans">
       
       {/* Header */}
       <motion.div
@@ -94,218 +150,188 @@ export function SettingsPage() {
           Settings
         </h1>
         <p className="text-xs sm:text-sm text-[#687793] mt-0.5 font-medium">
-          Manage your account preferences, privacy, and connected platforms
+          Manage your account preferences, privacy, authentication, and connected platforms
         </p>
       </motion.div>
 
-      {/* Main 2-Column Layout matching Panel 9 */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+      {/* Main Container */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
         
-        {/* Left Sub-Nav (4 Cols) */}
-        <Card className="md:col-span-4 p-2.5 space-y-1">
+        {/* Navigation Sidebar */}
+        <div className="md:col-span-1 space-y-1 bg-white p-2 rounded-2xl border border-[#E2EAF5] shadow-xs">
           {subNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeSubTab === item.id;
             return (
-              <motion.button
+              <button
                 key={item.id}
-                whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveSubTab(item.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
-                  isActive 
-                    ? 'bg-[#EAF3FF] text-[#15264B] font-bold shadow-2xs' 
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-[#15264B] text-white shadow-xs'
                     : 'text-[#687793] hover:text-[#15264B] hover:bg-[#F5F8FF]'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-[#15264B] stroke-[2.5]' : 'text-[#687793]'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#687793]'}`} />
                 <span>{item.label}</span>
-              </motion.button>
+              </button>
             );
           })}
-        </Card>
+        </div>
 
-        {/* Right Content Panel (8 Cols) */}
-        <div className="md:col-span-8">
+        {/* Content Panel */}
+        <div className="md:col-span-3 space-y-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeSubTab}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.2 }}
               className="space-y-6"
             >
-              {/* TAB 1: CONNECTED ACCOUNTS matching Screen 9 */}
-              {activeSubTab === 'connected' && (
-                <Card className="p-6 sm:p-8 space-y-6">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
-                      Connected Accounts
-                    </h2>
-                    <p className="text-xs text-[#687793] mt-0.5">
-                      Link your accounts to get better rankings and insights
-                    </p>
-                  </div>
 
-                  {/* Accounts List */}
-                  <div className="space-y-3 pt-1">
-                    {accounts.map((acc, idx) => (
-                      <motion.div 
-                        key={acc.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.25, delay: idx * 0.05 }}
-                        whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                        className="p-4 rounded-2xl bg-white border border-[#E2EAF5] flex items-center justify-between gap-4 hover:border-[#CBD8EB] transition shadow-2xs"
-                      >
-                        <div className="flex items-center gap-3.5">
-                          <div className="w-10 h-10 rounded-xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-center font-bold text-[#15264B] text-sm">
-                            {acc.name[0]}
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-sm text-[#15264B]">{acc.name}</h3>
-                            <div className="text-xs text-[#687793]">
-                              {acc.connected 
-                                ? `Connected${acc.handle ? ` • ${acc.handle}` : ''}`
-                                : 'Not connected'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {acc.connected ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full border border-[#B9EED9]">
-                              <Check className="w-3 h-3 stroke-[3]" /> Connected
-                            </span>
-                          ) : (
-                            <span className="text-[11px] text-[#687793] font-medium hidden sm:inline">
-                              Not connected
-                            </span>
-                          )}
-
-                          <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => toggleConnection(acc.id)}
-                            className={`text-xs font-bold px-3 py-1 rounded-full border transition cursor-pointer ${
-                              acc.connected 
-                                ? 'text-[#15264B] border-[#E2EAF5] hover:bg-[#F5F8FF]' 
-                                : 'bg-[#15264B] text-white border-[#15264B] hover:bg-[#0D1933]'
-                            }`}
-                          >
-                            {acc.connected ? 'Manage' : 'Connect'}
-                          </motion.button>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Security Notice Box matching Panel 9 */}
-                  <div className="p-4 rounded-2xl bg-[#EAF3FF] border border-[#D2E4FC] flex items-start gap-3">
-                    <Info className="w-4 h-4 text-[#1D4ED8] shrink-0 mt-0.5" />
-                    <p className="text-xs text-[#1D4ED8] leading-relaxed">
-                      Your data is secure. We only access what you allow and use it to improve your rankings and provide better opportunities. Persistent OAuth and real database persistence will automatically activate when backend services connect.
-                    </p>
-                  </div>
-                </Card>
-              )}
-
-          {/* TAB 2: ACCOUNT SETTINGS */}
+          {/* TAB 1: ACCOUNT & CLERK AUTH */}
           {activeSubTab === 'account' && (
-            <Card className="p-6 sm:p-8 space-y-6">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
-                  Profile Preferences
-                </h2>
-                <p className="text-xs text-[#687793] mt-0.5">
-                  Update your public developer identity and headline
-                </p>
-              </div>
+            <>
+              {/* Profile Details Form */}
+              <Card className="p-6 sm:p-8 space-y-6">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
+                    Account Profile
+                  </h2>
+                  <p className="text-xs text-[#687793] mt-0.5">
+                    Update your public developer details and bio
+                  </p>
+                </div>
 
-              {/* Onboarding Status & Setup Card */}
-              <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
-                onboardingStatus.isCompleted 
-                  ? 'bg-[#E8F8F0] border-[#A7F3D0] text-[#065F46]'
-                  : 'bg-[#FFF8DC] border-[#FFE89A] text-[#92400E]'
-              }`}>
-                <div className="flex items-start gap-2.5">
-                  <Sparkles className="w-4 h-4 mt-0.5 shrink-0" />
+                {/* Onboarding Status Banner */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-[#EFF6FF] to-[#F5F8FF] border border-[#BFDBFE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center text-[#2563EB] shadow-2xs border border-[#BFDBFE]">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-[#1E3A8A]">
+                        {onboardingStatus.isCompleted ? 'Developer Profile Configured' : 'Setup Incomplete'}
+                      </div>
+                      <p className="text-[11px] text-[#3B82F6]">
+                        {onboardingStatus.isCompleted 
+                          ? 'Profile is synchronized across leaderboards.' 
+                          : 'Complete your profile to unlock full verification.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(onboardingStatus.isCompleted ? '/onboarding?mode=edit' : '/onboarding')}
+                    className="shrink-0 text-xs flex items-center gap-1.5"
+                  >
+                    <span>{onboardingStatus.isCompleted ? 'Edit via Onboarding Flow' : 'Complete Setup Now'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+
+                <form onSubmit={handleSaveProfile} className="space-y-4">
+                  {formError && (
+                    <div className="p-3 bg-[#FFE8E5] text-[#D93829] text-xs font-semibold rounded-xl flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{formError}</span>
+                    </div>
+                  )}
+
                   <div>
-                    <h4 className="font-bold text-xs">
-                      {onboardingStatus.isCompleted ? 'Developer Onboarding: Completed' : 'Developer Onboarding: Pending'}
-                    </h4>
-                    <p className="text-[11px] opacity-90 mt-0.5">
-                      {onboardingStatus.isCompleted 
-                        ? `Profile linked to Clerk user. Skills and country verified for @${profile.username || 'developer'}.`
-                        : 'Complete your onboarding flow to unlock verified ranking calculation.'}
-                    </p>
+                    <label className="block text-xs font-semibold text-[#15264B] mb-1">Display Name</label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#15264B] mb-1">Role Title</label>
+                    <input
+                      type="text"
+                      value={roleTitle}
+                      onChange={(e) => setRoleTitle(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#15264B] mb-1">Bio / Headline</label>
+                    <textarea
+                      rows={3}
+                      value={headline}
+                      onChange={(e) => setHeadline(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
+                    />
+                  </div>
+
+                  {profileSuccess && (
+                    <div className="p-3 bg-[#E4F8EF] text-[#059669] text-xs font-semibold rounded-xl flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Profile settings updated successfully!</span>
+                    </div>
+                  )}
+
+                  <Button type="submit" variant="primary" size="md" className="font-bold">
+                    Save Changes
+                  </Button>
+                </form>
+              </Card>
+
+              {/* Clerk Authentication & Security Section */}
+              <Card className="p-6 sm:p-8 space-y-5 border-[#E2EAF5]">
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
+                    Authentication & Password Recovery
+                  </h2>
+                  <p className="text-xs text-[#687793] mt-0.5">
+                    Clerk-powered credential management, password reset, and active sessions
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#15264B]">
+                    <Shield className="w-4 h-4 text-[#2563EB]" />
+                    <span>Real Clerk Account Security</span>
+                  </div>
+                  <p className="text-xs text-[#687793] leading-relaxed">
+                    Update your password, configure multi-factor authentication (MFA/2FA), verify your recovery email, or view your active sign-in sessions directly through Clerk security center.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openUserProfile()}
+                      className="gap-2 text-xs font-bold"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-[#2563EB]" />
+                      <span>Manage Password & Security</span>
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleSignOut}
+                      disabled={isSigningOut}
+                      className="gap-2 text-xs font-bold"
+                    >
+                      {isSigningOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5 text-[#D93829]" />}
+                      <span>Sign Out of Rankora</span>
+                    </Button>
                   </div>
                 </div>
-
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => navigate(onboardingStatus.isCompleted ? '/onboarding?mode=edit' : '/onboarding')}
-                  className="shrink-0 text-xs flex items-center gap-1.5"
-                >
-                  <span>{onboardingStatus.isCompleted ? 'Edit via Onboarding Flow' : 'Complete Setup Now'}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-
-              {/* Persistence Status Notice */}
-              <div className="p-3 bg-[#F8FAFC] border border-[#E2EAF5] rounded-xl flex items-center gap-2 text-[11px] text-[#64748B]">
-                <Info className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
-                <span>
-                  <strong>Persistence Status:</strong> {persistenceInfo.message || 'Saved via Rankora Development Profile Store (tied to Clerk auth session).'}
-                </span>
-              </div>
-
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#15264B] mb-1">Display Name</label>
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#15264B] mb-1">Role Title</label>
-                  <input
-                    type="text"
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#15264B] mb-1">Bio / Headline</label>
-                  <textarea
-                    rows={3}
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-[#F5F8FF] border border-[#E2EAF5] rounded-xl text-xs text-[#15264B] focus:outline-none focus:bg-white focus:border-[#3B82F6]"
-                  />
-                </div>
-
-                {profileSuccess && (
-                  <div className="p-3 bg-[#E4F8EF] text-[#059669] text-xs font-semibold rounded-xl flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Profile settings updated successfully!</span>
-                  </div>
-                )}
-
-                <Button type="submit" variant="primary" size="md" className="font-bold">
-                  Save Changes
-                </Button>
-              </form>
-            </Card>
+              </Card>
+            </>
           )}
 
-          {/* TAB 3: PRIVACY */}
+          {/* TAB 2: PRIVACY & TELEMETRY */}
           {activeSubTab === 'privacy' && (
             <Card className="p-6 sm:p-8 space-y-6">
               <div>
@@ -313,7 +339,7 @@ export function SettingsPage() {
                   Privacy & Data Sharing
                 </h2>
                 <p className="text-xs text-[#687793] mt-0.5">
-                  Control who sees your verified signal score and profile
+                  Control who sees your verified signal score and configure privacy telemetry
                 </p>
               </div>
 
@@ -343,11 +369,27 @@ export function SettingsPage() {
                     className="w-4 h-4 accent-[#15264B] cursor-pointer"
                   />
                 </div>
+
+                {/* Privacy Analytics Control */}
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5]">
+                  <div>
+                    <h3 className="text-xs font-bold text-[#15264B]">Privacy-Preserving Telemetry & Analytics</h3>
+                    <p className="text-[11px] text-[#687793] mt-0.5">
+                      Share anonymous page usage metrics to help refine the scoring formula. Zero personal information collected.
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={telemetryEnabled}
+                    onChange={handleToggleTelemetry}
+                    className="w-4 h-4 accent-[#15264B] cursor-pointer"
+                  />
+                </div>
               </div>
             </Card>
           )}
 
-          {/* TAB 4: NOTIFICATIONS */}
+          {/* TAB 3: NOTIFICATIONS */}
           {activeSubTab === 'notifications' && (
             <Card className="p-6 sm:p-8 space-y-6">
               <div>
@@ -393,6 +435,48 @@ export function SettingsPage() {
             </Card>
           )}
 
+          {/* TAB 4: CONNECTED ACCOUNTS */}
+          {activeSubTab === 'connected' && (
+            <Card className="p-6 sm:p-8 space-y-6">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-[#15264B]">
+                  Connected Platforms
+                </h2>
+                <p className="text-xs text-[#687793] mt-0.5">
+                  Connect third-party platforms to automatically verify your problem-solving signals
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-1">
+                {accounts.map((acc) => (
+                  <div key={acc.id} className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-[#15264B] flex items-center gap-2">
+                        <span>{acc.name}</span>
+                        {acc.connected && (
+                          <span className="text-[10px] text-[#059669] bg-[#E4F8EF] px-2 py-0.5 rounded-full font-semibold">
+                            Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#687793] mt-0.5">
+                        {acc.connected ? `Linked as @${acc.handle}` : 'Not connected'}
+                      </p>
+                    </div>
+
+                    <Button
+                      variant={acc.connected ? "outline" : "primary"}
+                      size="sm"
+                      onClick={() => toggleConnection(acc.id)}
+                    >
+                      {acc.connected ? 'Disconnect' : 'Connect'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
           {/* TAB 5: DATA & EXPORT */}
           {activeSubTab === 'data' && (
             <Card className="p-6 sm:p-8 space-y-6">
@@ -420,11 +504,17 @@ export function SettingsPage() {
                 <div className="p-4 rounded-2xl bg-[#FFE8E5]/50 border border-[#FFD3CE] flex items-center justify-between">
                   <div>
                     <h3 className="text-xs font-bold text-[#D93829]">Delete Account</h3>
-                    <p className="text-[11px] text-[#687793]">Permanently remove your developer score and linked evidence.</p>
+                    <p className="text-[11px] text-[#687793]">Permanently delete your profile, verified signals, and connected database records.</p>
                   </div>
-                  <Button variant="danger" size="sm" onClick={() => setIsDeleteDialogOpen(true)} className="gap-1.5">
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
+                  <Button 
+                    variant="danger" 
+                    size="sm" 
+                    onClick={() => setIsDeleteDialogOpen(true)} 
+                    disabled={isDeleting}
+                    className="gap-1.5 font-bold"
+                  >
+                    {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    <span>{isDeleting ? 'Deleting...' : 'Delete Account'}</span>
                   </Button>
                 </div>
               </div>
@@ -466,14 +556,11 @@ export function SettingsPage() {
       {/* Confirmation Dialog for Delete Account */}
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={() => {
-          alert("Account deletion request submitted for simulation.");
-          setIsDeleteDialogOpen(false);
-        }}
-        title="Delete Rankora Account?"
-        description="Are you sure you want to delete your profile? All verified signal scores, achievements, and leaderboard placements will be cleared."
-        confirmLabel="Yes, Delete Account"
+        onClose={() => !isDeleting && setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Permanently Delete Rankora Account?"
+        description="Are you sure you want to delete your profile? All verified signal scores, achievements, and leaderboard placements will be purged immediately from the database."
+        confirmLabel={isDeleting ? "Deleting Account..." : "Yes, Delete Everything"}
         variant="danger"
       />
 

@@ -11,13 +11,24 @@ export function SkillBadge({
   onClick,
   className
 }) {
+  const handleKeyDown = (e) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   if (variant === 'card') {
     return (
       <div 
         onClick={onClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={onClick ? 0 : undefined}
+        role={onClick ? "button" : undefined}
+        aria-label={onClick ? `${name}, ${level || 'verified skill'}` : undefined}
         className={cn(
           "bg-white border border-[#E2EAF5] rounded-2xl p-4 flex items-center justify-between gap-3 shadow-2xs hover:shadow-sm hover:border-[#CBD8EB] transition-all",
-          onClick && "cursor-pointer",
+          onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]",
           className
         )}
       >
@@ -59,9 +70,12 @@ export function SkillBadge({
   return (
     <span
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? "button" : undefined}
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EAF3FF] text-[#15264B] border border-[#D2E4FC] hover:bg-[#dbeafe] transition-colors",
-        onClick && "cursor-pointer",
+        onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]",
         className
       )}
     >

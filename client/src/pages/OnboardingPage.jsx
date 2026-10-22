@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/react';
 import { motion } from 'motion/react';
@@ -95,18 +95,18 @@ export function OnboardingPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   // Pre-fill from Clerk user
+  const hasInitializedFromUser = useRef(false);
   useEffect(() => {
-    if (user) {
-      if (!displayName) {
-        const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '';
+    if (user && !hasInitializedFromUser.current) {
+      hasInitializedFromUser.current = true;
+      const name = user.fullName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '';
+      if (name) {
         setDisplayName(name);
       }
-      if (!username) {
-        const initialHandle = user.username || (user.primaryEmailAddress?.emailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : '');
-        const cleanHandle = initialHandle.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
-        if (cleanHandle) {
-          setUsername(cleanHandle);
-        }
+      const initialHandle = user.username || (user.primaryEmailAddress?.emailAddress ? user.primaryEmailAddress.emailAddress.split('@')[0] : '');
+      const cleanHandle = initialHandle.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24);
+      if (cleanHandle) {
+        setUsername(cleanHandle);
       }
     }
   }, [user]);
@@ -181,6 +181,17 @@ export function OnboardingPage() {
     if (currentStep === 2) {
       if (selectedSkills.length === 0) {
         setErrorMessage('Please select or add at least one primary skill.');
+        return false;
+      }
+    }
+    if (currentStep === 3) {
+      const urlPattern = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/i;
+      if (portfolioUrl.trim() && !urlPattern.test(portfolioUrl.trim())) {
+        setErrorMessage('Please provide a valid website URL for your portfolio.');
+        return false;
+      }
+      if (linkedinUrl.trim() && !urlPattern.test(linkedinUrl.trim())) {
+        setErrorMessage('Please provide a valid LinkedIn URL.');
         return false;
       }
     }

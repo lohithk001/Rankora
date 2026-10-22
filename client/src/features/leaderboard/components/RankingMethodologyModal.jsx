@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, 
@@ -29,6 +29,19 @@ export function RankingMethodologyModal({ isOpen, onClose }) {
 
   const [activeTab, setActiveTab] = useState('methodology'); // 'methodology' | 'simulator' | 'antiCheat'
 
+  // Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   // Simulator calculation
@@ -54,7 +67,12 @@ export function RankingMethodologyModal({ isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="methodology-modal-title"
+      >
         {/* Backdrop click to dismiss */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -71,6 +89,7 @@ export function RankingMethodologyModal({ isOpen, onClose }) {
           exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ type: "spring", damping: 25, stiffness: 350 }}
           className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-[#E2EAF5] overflow-hidden z-10 flex flex-col max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4.5 border-b border-[#E2EAF5] bg-[#F5F8FF]/60">
@@ -79,7 +98,7 @@ export function RankingMethodologyModal({ isOpen, onClose }) {
                 <Scale className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#15264B] leading-tight">
+                <h3 id="methodology-modal-title" className="text-base sm:text-lg font-bold text-[#15264B] leading-tight">
                   Ranking Methodology & Simulator
                 </h3>
                 <p className="text-xs text-[#687793] font-medium">
@@ -89,7 +108,8 @@ export function RankingMethodologyModal({ isOpen, onClose }) {
             </div>
             <button 
               onClick={onClose}
-              className="w-8 h-8 rounded-full hover:bg-slate-200/60 flex items-center justify-center text-[#687793] hover:text-[#15264B] transition-colors cursor-pointer"
+              aria-label="Close methodology modal"
+              className="w-8 h-8 rounded-full hover:bg-slate-200/60 flex items-center justify-center text-[#687793] hover:text-[#15264B] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
             >
               <X className="w-5 h-5" />
             </button>

@@ -73,12 +73,14 @@ export function LeaderboardFilters({
             placeholder="Search developers or skills..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-8 pr-8 py-1.5 bg-white border border-[#E2EAF5] rounded-full text-xs text-[#15264B] placeholder-[#687793] focus:outline-none focus:border-[#3B82F6] shadow-2xs transition-all"
+            aria-label="Search developers by name, username or skills"
+            className="w-full pl-8 pr-8 py-1.5 bg-white border border-[#E2EAF5] rounded-full text-xs text-[#15264B] placeholder-[#687793] focus:outline-none focus:border-[#3B82F6] focus-visible:ring-2 focus-visible:ring-[#2563EB] shadow-2xs transition-all"
           />
           {searchQuery && (
             <button
               onClick={() => onSearchChange('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#687793] hover:text-[#15264B] p-0.5"
+              aria-label="Clear search input"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#687793] hover:text-[#15264B] p-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -91,11 +93,13 @@ export function LeaderboardFilters({
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Country Selector */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[#687793] font-medium">Country:</span>
+            <label htmlFor="country-select" className="text-[#687793] font-medium">Country:</label>
             <select
+              id="country-select"
               value={country}
               onChange={(e) => onCountryChange(e.target.value)}
-              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] cursor-pointer"
+              aria-label="Filter leaderboard by country"
+              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] focus-visible:ring-2 focus-visible:ring-[#2563EB] cursor-pointer"
             >
               <option value="Global">All Countries (Global)</option>
               {SUPPORTED_COUNTRIES.map(c => (
@@ -108,11 +112,13 @@ export function LeaderboardFilters({
 
           {/* Skill Track Selector */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[#687793] font-medium">Track:</span>
+            <label htmlFor="track-select" className="text-[#687793] font-medium">Track:</label>
             <select
+              id="track-select"
               value={skillCategory}
               onChange={(e) => onSkillCategoryChange(e.target.value)}
-              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] cursor-pointer"
+              aria-label="Filter leaderboard by engineering track"
+              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] focus-visible:ring-2 focus-visible:ring-[#2563EB] cursor-pointer"
             >
               {Object.entries(SKILL_CATEGORY_LABELS).map(([catKey, label]) => (
                 <option key={catKey} value={catKey}>
@@ -124,11 +130,13 @@ export function LeaderboardFilters({
 
           {/* League Selector */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[#687793] font-medium">League:</span>
+            <label htmlFor="league-select" className="text-[#687793] font-medium">League:</label>
             <select
+              id="league-select"
               value={league}
               onChange={(e) => onLeagueChange(e.target.value)}
-              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] cursor-pointer"
+              aria-label="Filter leaderboard by league tier"
+              className="bg-[#F5F8FF] border border-[#E2EAF5] rounded-full px-3 py-1 text-xs font-semibold text-[#15264B] focus:outline-none focus:border-[#3B82F6] focus-visible:ring-2 focus-visible:ring-[#2563EB] cursor-pointer"
             >
               <option value="All">All Leagues</option>
               {Object.keys(LEAGUE_TIERS).map(tier => (
@@ -145,7 +153,7 @@ export function LeaderboardFilters({
               type="checkbox"
               checked={verifiedOnly}
               onChange={(e) => onVerifiedOnlyChange(e.target.checked)}
-              className="accent-[#4CC9A6] cursor-pointer"
+              className="accent-[#4CC9A6] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded"
             />
             <span className="text-[#15264B] font-semibold flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-[#059669]" />
@@ -162,7 +170,8 @@ export function LeaderboardFilters({
           {hasActiveFilters && (
             <button
               onClick={onClearFilters}
-              className="text-[#3B82F6] font-bold hover:underline cursor-pointer ml-1"
+              aria-label="Reset all leaderboard filters"
+              className="text-[#3B82F6] font-bold hover:underline cursor-pointer ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded px-1"
             >
               Reset
             </button>

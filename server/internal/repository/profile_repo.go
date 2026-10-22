@@ -7,6 +7,7 @@ import (
 	"strings"
 	"rankora/server/internal/models"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -235,6 +236,34 @@ func (r *ProfileRepository) UpdateProfile(ctx context.Context, clerkID string, r
 	)
 
 	return scanProfile(row)
+}
+
+// DeleteProfile permanently deletes developer profile, cascading to linked skills, projects, and accounts
+func (r *ProfileRepository) DeleteProfile(ctx context.Context, clerkID string) error {
+	query := `DELETE FROM developer_profiles WHERE clerk_user_id = $1`
+	cmdTag, err := r.pool.Exec(ctx, query, clerkID)
+	if err != nil {
+		return fmt.Errorf("failed deleting profile: %w", err)
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return errors.New("profile not found or already deleted")
+	}
+	return nil
+}
+
+// UpdateScore updates calculated score, league and confidence for a profile
+func (r *ProfileRepository) UpdateScore(ctx context.Context, profileID uuid.UUID, score float64, league string, confidence float64, isProvisional bool) error {
+	query := `
+		UPDATE developer_profiles SET
+			score = $1,
+			league = $2,
+			confidence = $3,
+			is_provisional = $4,
+			updated_at = (NOW() AT TIME ZONE 'UTC')
+		WHERE id = $5
+	`
+	_, err := r.pool.Exec(ctx, query, score, league, confidence, isProvisional, profileID)
+	return err
 }
 
 func scanProfile(row pgx.Row) (*models.DeveloperProfile, error) {

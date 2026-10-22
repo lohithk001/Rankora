@@ -13,7 +13,7 @@ export function Button({
   icon: Icon,
   ...props
 }) {
-  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer";
+  const baseStyles = "inline-flex items-center justify-center font-semibold rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed select-none cursor-pointer";
 
   const sizeStyles = {
     sm: "text-xs px-3.5 py-1.5 gap-1.5 h-8",

@@ -49,6 +49,16 @@ export function SignUpPage() {
             }}
           />
         </div>
+
+        {/* Email Verification and Terms Notice */}
+        <div className="w-full p-4 rounded-2xl bg-white border border-[#E2EAF5] shadow-xs text-xs text-[#687793] space-y-1 text-center">
+          <p className="font-bold text-[#15264B]">Email Verification Required</p>
+          <p className="text-[11px] leading-relaxed">
+            A 6-digit one-time passcode will be dispatched to your inbox to authenticate genuine developer identity. By signing up, you agree to our{' '}
+            <a href="/terms" className="text-[#2563EB] font-bold hover:underline">Terms of Service</a> and{' '}
+            <a href="/privacy" className="text-[#2563EB] font-bold hover:underline">Privacy Policy</a>.
+          </p>
+        </div>
       </motion.div>
     </div>
   );

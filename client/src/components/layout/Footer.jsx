@@ -72,9 +72,14 @@ export function Footer({ onOpenFormula, setCurrentTab }) {
               </button>
             </li>
             <li>
-              <button onClick={() => setCurrentTab('settings')} className="hover:text-cyan-400 transition">
-                Privacy Controls & GDPR Export
-              </button>
+              <a href="/privacy" className="hover:text-cyan-400 transition">
+                Privacy Policy & GDPR
+              </a>
+            </li>
+            <li>
+              <a href="/terms" className="hover:text-cyan-400 transition">
+                Terms of Service
+              </a>
             </li>
             <li>
               <span className="text-slate-500">Fresher Fairness Protocol Active</span>

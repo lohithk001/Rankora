@@ -171,14 +171,22 @@ export function PublicLayout() {
             <div className="font-bold text-[#15264B] uppercase tracking-wider text-[11px]">Trust & Architecture</div>
             <ul className="space-y-1.5 text-[#687793]">
               <li><Link to="/sign-up" className="hover:text-[#15264B] transition">Join Community</Link></li>
-              <li><Link to="/leaderboard" className="hover:text-[#15264B] transition">Public Verification Engine</Link></li>
+              <li><Link to="/privacy" className="hover:text-[#15264B] transition">Privacy Policy</Link></li>
+              <li><Link to="/terms" className="hover:text-[#15264B] transition">Terms of Service</Link></li>
               <li><span className="text-[#10B981] font-semibold">● Real-time Signal Engine v2.0</span></li>
             </ul>
           </div>
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 mt-8 border-t border-[#E2EAF5] flex flex-col sm:flex-row items-center justify-between text-xs text-[#687793] gap-2">
-          <p>© {CURRENT_YEAR} Rankora Intelligence. All rights reserved.</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <p>© {CURRENT_YEAR} Rankora Intelligence. All rights reserved.</p>
+            <div className="flex items-center gap-3 font-semibold text-[#15264B]">
+              <Link to="/privacy" className="hover:underline">Privacy</Link>
+              <span>•</span>
+              <Link to="/terms" className="hover:underline">Terms</Link>
+            </div>
+          </div>
           <p className="flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
             <span>Built for developers worldwide.</span>

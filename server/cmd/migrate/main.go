@@ -21,7 +21,10 @@ func main() {
 
 	log.Println("[Migrate CLI] Starting Rankora Neon database migration runner...")
 
-	cfg := config.LoadConfig()
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Printf("[Migrate CLI] Warning loading config: %v", err)
+	}
 	connStr := cfg.MigrationDatabaseURL
 	if connStr == "" {
 		connStr = cfg.DatabaseURL

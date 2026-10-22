@@ -35,6 +35,16 @@ type DeveloperProfile struct {
 	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
+type ProfilePreferences struct {
+	ProfileID          uuid.UUID `json:"profileId"`
+	EmailNotifications bool      `json:"emailNotifications"`
+	RecruiterOutreach  bool      `json:"recruiterOutreach"`
+	ShowCompensation   bool      `json:"showCompensation"`
+	Theme              string    `json:"theme"`
+	CreatedAt          time.Time `json:"createdAt"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+}
+
 type ProfileSkill struct {
 	ID            uuid.UUID `json:"id"`
 	ProfileID     uuid.UUID `json:"profileId"`
@@ -48,18 +58,18 @@ type ProfileSkill struct {
 }
 
 type Project struct {
-	ID                   uuid.UUID `json:"id"`
-	ProfileID            uuid.UUID `json:"profileId"`
-	Title                string    `json:"title"`
-	Description          *string   `json:"description,omitempty"`
-	RepositoryURL        *string   `json:"repositoryUrl,omitempty"`
-	LiveURL              *string   `json:"liveUrl,omitempty"`
-	TechStack            []string  `json:"techStack"`
-	TestCoveragePercent  *float64  `json:"testCoveragePercent,omitempty"`
-	ArchitectureNotes    *string   `json:"architectureNotes,omitempty"`
-	VerificationStatus   string    `json:"verificationStatus"`
-	CreatedAt            time.Time `json:"createdAt"`
-	UpdatedAt            time.Time `json:"updatedAt"`
+	ID                  uuid.UUID `json:"id"`
+	ProfileID           uuid.UUID `json:"profileId"`
+	Title               string    `json:"title"`
+	Description         *string   `json:"description,omitempty"`
+	RepositoryURL       *string   `json:"repositoryUrl,omitempty"`
+	LiveURL             *string   `json:"liveUrl,omitempty"`
+	TechStack           []string  `json:"techStack"`
+	TestCoveragePercent *float64  `json:"testCoveragePercent,omitempty"`
+	ArchitectureNotes   *string   `json:"architectureNotes,omitempty"`
+	VerificationStatus  string    `json:"verificationStatus"`
+	CreatedAt           time.Time `json:"createdAt"`
+	UpdatedAt           time.Time `json:"updatedAt"`
 }
 
 type ExperienceEntry struct {
@@ -101,17 +111,17 @@ type ConnectedAccount struct {
 }
 
 type EvidenceItem struct {
-	ID          uuid.UUID              `json:"id"`
-	ProfileID   uuid.UUID              `json:"profileId"`
-	Source      string                 `json:"source"`
-	EvidenceType string                `json:"evidenceType"`
-	Title       string                 `json:"title"`
-	Description *string                `json:"description,omitempty"`
-	Payload     map[string]interface{} `json:"payload,omitempty"`
-	Confidence  float64                `json:"confidence"`
-	ImpactScore *string                `json:"impactScore,omitempty"`
-	OccurredAt  time.Time              `json:"occurredAt"`
-	CreatedAt   time.Time              `json:"createdAt"`
+	ID           uuid.UUID              `json:"id"`
+	ProfileID    uuid.UUID              `json:"profileId"`
+	Source       string                 `json:"source"`
+	EvidenceType string                 `json:"evidenceType"`
+	Title        string                 `json:"title"`
+	Description  *string                `json:"description,omitempty"`
+	Payload      map[string]interface{} `json:"payload,omitempty"`
+	Confidence   float64                `json:"confidence"`
+	ImpactScore  *string                `json:"impactScore,omitempty"`
+	OccurredAt   time.Time              `json:"occurredAt"`
+	CreatedAt    time.Time              `json:"createdAt"`
 }
 
 type ScoreSnapshot struct {
@@ -164,6 +174,153 @@ type AuditLog struct {
 	CreatedAt    time.Time              `json:"createdAt"`
 }
 
+type SyncJob struct {
+	ID          uuid.UUID  `json:"id"`
+	ProfileID   uuid.UUID  `json:"profileId"`
+	Provider    string     `json:"provider"`
+	Status      string     `json:"status"`
+	ItemsSynced int        `json:"itemsSynced"`
+	ErrorMessage *string   `json:"errorMessage,omitempty"`
+	StartedAt   *time.Time `json:"startedAt,omitempty"`
+	CompletedAt *time.Time `json:"completedAt,omitempty"`
+	CreatedAt   time.Time  `json:"createdAt"`
+}
+
+type DeveloperMetrics struct {
+	ProfileID               uuid.UUID `json:"profileId"`
+	ReposAnalyzed           int       `json:"reposAnalyzed"`
+	ProblemsSolved          int       `json:"problemsSolved"`
+	ContestsRated           int       `json:"contestsRated"`
+	PRsReviewed             int       `json:"prsReviewed"`
+	TestCoverageAvg         float64   `json:"testCoverageAvg"`
+	CommitStreakDays        int       `json:"commitStreakDays"`
+	ProblemSolvingScore     float64   `json:"problemSolvingScore"`
+	EngineeringQualityScore float64   `json:"engineeringQualityScore"`
+	TechnicalSkillsScore    float64   `json:"technicalSkillsScore"`
+	CollaborationScore      float64   `json:"collaborationScore"`
+	GrowthConsistencyScore  float64   `json:"growthConsistencyScore"`
+	LastComputedAt          time.Time `json:"lastComputedAt"`
+}
+
+type ScoreAppeal struct {
+	ID              uuid.UUID  `json:"id"`
+	ProfileID       uuid.UUID  `json:"profileId"`
+	Dimension       string     `json:"dimension"`
+	Reason          string     `json:"reason"`
+	EvidenceURLs    []string   `json:"evidenceUrls"`
+	Status          string     `json:"status"`
+	ResolutionNotes *string    `json:"resolutionNotes,omitempty"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	ResolvedAt      *time.Time `json:"resolvedAt,omitempty"`
+}
+
+type Assessment struct {
+	ID               uuid.UUID `json:"id"`
+	Slug             string    `json:"slug"`
+	Name             string    `json:"name"`
+	Category         string    `json:"category"`
+	Difficulty       string    `json:"difficulty"`
+	Description      string    `json:"description"`
+	BadgeTitle       string    `json:"badgeTitle"`
+	TimeLimitMinutes int       `json:"timeLimitMinutes"`
+	RubricVersion    string    `json:"rubricVersion"`
+	ProblemStatement string    `json:"problemStatement"`
+	StarterCode      *string   `json:"starterCode,omitempty"`
+	IsActive         bool      `json:"isActive"`
+	CreatedAt        time.Time `json:"createdAt"`
+}
+
+type AssessmentAttempt struct {
+	ID               uuid.UUID  `json:"id"`
+	ProfileID        uuid.UUID  `json:"profileId"`
+	AssessmentID     uuid.UUID  `json:"assessmentId"`
+	Status           string     `json:"status"`
+	Score            float64    `json:"score"`
+	TestCasesPassed  int        `json:"testCasesPassed"`
+	TotalTestCases   int        `json:"totalTestCases"`
+	SubmittedCode    *string    `json:"submittedCode,omitempty"`
+	ExecutionTimeMs  int        `json:"executionTimeMs"`
+	MemoryUsedKB     int        `json:"memoryUsedKb"`
+	Feedback         *string    `json:"feedback,omitempty"`
+	StartedAt        time.Time  `json:"startedAt"`
+	CompletedAt      *time.Time `json:"completedAt,omitempty"`
+}
+
+type CommunityTopic struct {
+	ID          uuid.UUID `json:"id"`
+	Slug        string    `json:"slug"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+}
+
+type CommunityPost struct {
+	ID               uuid.UUID `json:"id"`
+	AuthorProfileID  uuid.UUID `json:"authorProfileId"`
+	AuthorName       string    `json:"authorName,omitempty"`
+	AuthorUsername   string    `json:"authorUsername,omitempty"`
+	AuthorAvatar     string    `json:"authorAvatar,omitempty"`
+	TopicID          *uuid.UUID `json:"topicId,omitempty"`
+	TopicName        string    `json:"topicName,omitempty"`
+	Title            string    `json:"title"`
+	Content          string    `json:"content"`
+	Tags             []string  `json:"tags"`
+	VotesCount       int       `json:"votesCount"`
+	CommentsCount    int       `json:"commentsCount"`
+	UserVoted        int       `json:"userVoted,omitempty"`
+	UserBookmarked   bool      `json:"userBookmarked,omitempty"`
+	IsPinned         bool      `json:"isPinned"`
+	IsLocked         bool      `json:"isLocked"`
+	CreatedAt        time.Time `json:"createdAt"`
+	UpdatedAt        time.Time `json:"updatedAt"`
+}
+
+type CommunityComment struct {
+	ID              uuid.UUID  `json:"id"`
+	PostID          uuid.UUID  `json:"postId"`
+	AuthorProfileID uuid.UUID  `json:"authorProfileId"`
+	AuthorName      string     `json:"authorName,omitempty"`
+	AuthorUsername  string     `json:"authorUsername,omitempty"`
+	AuthorAvatar    string     `json:"authorAvatar,omitempty"`
+	ParentCommentID *uuid.UUID `json:"parentCommentId,omitempty"`
+	Content         string     `json:"content"`
+	VotesCount      int        `json:"votesCount"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
+}
+
+type RecruiterProfile struct {
+	ID                 uuid.UUID `json:"id"`
+	ClerkUserID        string    `json:"clerkUserId"`
+	CompanyName        string    `json:"companyName"`
+	CompanyWebsite     *string   `json:"companyWebsite,omitempty"`
+	RoleTitle          string    `json:"roleTitle"`
+	VerificationStatus string    `json:"verificationStatus"`
+	CreatedAt          time.Time `json:"createdAt"`
+}
+
+type CandidateContactRequest struct {
+	ID                 uuid.UUID `json:"id"`
+	RecruiterClerkID   string    `json:"recruiterClerkId"`
+	CandidateProfileID uuid.UUID `json:"candidateProfileId"`
+	JobTitle           string    `json:"jobTitle"`
+	Message            string    `json:"message"`
+	CompensationRange  *string   `json:"compensationRange,omitempty"`
+	Status             string    `json:"status"`
+	CreatedAt          time.Time `json:"createdAt"`
+}
+
+type Notification struct {
+	ID        uuid.UUID `json:"id"`
+	ProfileID uuid.UUID `json:"profileId"`
+	Title     string    `json:"title"`
+	Body      string    `json:"body"`
+	Category  string    `json:"category"`
+	Link      *string   `json:"link,omitempty"`
+	IsRead    bool      `json:"isRead"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 // Request and Response DTOs
 
 type OnboardingRequest struct {
@@ -201,6 +358,13 @@ type UpdateProfileRequest struct {
 	PortfolioURL    *string   `json:"portfolioUrl"`
 }
 
+type UpdatePreferencesRequest struct {
+	EmailNotifications *bool   `json:"emailNotifications"`
+	RecruiterOutreach  *bool   `json:"recruiterOutreach"`
+	ShowCompensation   *bool   `json:"showCompensation"`
+	Theme              *string `json:"theme"`
+}
+
 type CreateProjectRequest struct {
 	Title               string   `json:"title" binding:"required"`
 	Description         string   `json:"description"`
@@ -213,4 +377,42 @@ type CreateProjectRequest struct {
 
 type UpdateSkillsRequest struct {
 	Skills []string `json:"skills" binding:"required"`
+}
+
+type CreatePostRequest struct {
+	Title   string   `json:"title" binding:"required"`
+	Content string   `json:"content" binding:"required"`
+	TopicSlug string `json:"topicSlug"`
+	Tags    []string `json:"tags"`
+}
+
+type CreateCommentRequest struct {
+	Content         string     `json:"content" binding:"required"`
+	ParentCommentID *uuid.UUID `json:"parentCommentId"`
+}
+
+type VoteRequest struct {
+	Value int `json:"value" binding:"required"` // 1 or -1
+}
+
+type SubmitAssessmentRequest struct {
+	Code string `json:"code" binding:"required"`
+}
+
+type SaveCandidateRequest struct {
+	CandidateUsername string `json:"candidateUsername" binding:"required"`
+	Notes             string `json:"notes"`
+}
+
+type ContactCandidateRequest struct {
+	CandidateUsername string `json:"candidateUsername" binding:"required"`
+	JobTitle          string `json:"jobTitle" binding:"required"`
+	Message           string `json:"message" binding:"required"`
+	CompensationRange string `json:"compensationRange"`
+}
+
+type AppealScoreRequest struct {
+	Dimension    string   `json:"dimension" binding:"required"`
+	Reason       string   `json:"reason" binding:"required"`
+	EvidenceURLs []string `json:"evidenceUrls"`
 }

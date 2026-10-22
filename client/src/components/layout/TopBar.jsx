@@ -76,8 +76,21 @@ export function TopBar({ onToggleMobileMenu, isMobileMenuOpen }) {
         setShowSearchDropdown(false);
       }
     }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setShowSearchDropdown(false);
+        setShowNotifications(false);
+        setShowProfileMenu(false);
+      }
+    }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const handleSearchSubmit = (e) => {
@@ -187,7 +200,8 @@ export function TopBar({ onToggleMobileMenu, isMobileMenuOpen }) {
         {/* Search icon trigger */}
         <button 
           onClick={handleSearchSubmit}
-          className="p-2 text-[#687793] hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-full transition cursor-pointer"
+          className="p-2 text-[#687793] hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-full transition cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+          aria-label="Submit developer search"
           title="Search"
         >
           <Search className="w-4 h-4" />
@@ -197,7 +211,8 @@ export function TopBar({ onToggleMobileMenu, isMobileMenuOpen }) {
         <div className="relative" ref={notifRef}>
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
-            className="p-2 text-[#687793] hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-full transition relative cursor-pointer"
+            className="p-2 text-[#687793] hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-full transition relative cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+            aria-label="View notifications"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -234,7 +249,8 @@ export function TopBar({ onToggleMobileMenu, isMobileMenuOpen }) {
             setIsSavedActive(!isSavedActive);
             setSavedCount(c => isSavedActive ? c - 1 : c + 1);
           }}
-          className="p-2 text-[#687793] hover:text-[#FF6B6B] hover:bg-[#FFE8E5]/50 rounded-full transition relative cursor-pointer"
+          className="p-2 text-[#687793] hover:text-[#FF6B6B] hover:bg-[#FFE8E5]/50 rounded-full transition relative cursor-pointer focus-visible:ring-2 focus-visible:ring-[#FF6B6B]"
+          aria-label="Saved candidates"
           title="Saved candidates"
         >
           <Heart className={`w-4 h-4 ${isSavedActive ? 'text-[#FF6B6B] fill-[#FF6B6B]' : ''}`} />
@@ -272,7 +288,9 @@ export function TopBar({ onToggleMobileMenu, isMobileMenuOpen }) {
             <>
               <button 
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2 cursor-pointer p-0.5 rounded-full hover:ring-2 hover:ring-[#EAF3FF] transition"
+                className="flex items-center gap-2 cursor-pointer p-0.5 rounded-full hover:ring-2 hover:ring-[#EAF3FF] transition focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                aria-label="User Profile Menu"
+                aria-expanded={showProfileMenu}
                 title="User Profile Menu (Demo)"
               >
                 <DeveloperAvatar 

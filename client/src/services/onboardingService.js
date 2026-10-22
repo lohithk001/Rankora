@@ -309,6 +309,45 @@ export const onboardingService = {
   },
 
   /**
+   * Permanently delete developer account and purge local + backend data
+   */
+  async deleteAccount(clerkUserId, token = null) {
+    if (!clerkUserId) return { success: false, error: 'User ID is required' };
+
+    let apiSuccess = false;
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      headers['x-clerk-user-id'] = clerkUserId;
+
+      const signal = AbortSignal.timeout ? AbortSignal.timeout(3000) : undefined;
+      const res = await fetch(`${BASE_URL}/users/account`, {
+        method: 'DELETE',
+        headers,
+        body: JSON.stringify({ clerkUserId }),
+        signal
+      });
+      if (res.ok) {
+        apiSuccess = true;
+      }
+    } catch (err) {
+      console.warn('API account deletion failed, proceeding with local purge:', err);
+    }
+
+    // Always clear local adapter state
+    const profiles = DevStorageAdapter.getAllProfiles();
+    delete profiles[clerkUserId];
+    try {
+      localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
+      DevStorageAdapter.removeSkipped(clerkUserId);
+    } catch (e) {
+      console.warn('Failed clearing localStorage:', e);
+    }
+
+    return { success: true, apiSuccess };
+  },
+
+  /**
    * Skip onboarding temporarily
    */
   skip(clerkUserId) {

@@ -9,9 +9,13 @@ import (
 	"time"
 
 	"rankora/server/internal/auth"
+	"rankora/server/internal/config"
 	"rankora/server/internal/database"
+	"rankora/server/internal/integrations/codeforces"
+	"rankora/server/internal/integrations/github"
 	"rankora/server/internal/models"
 	"rankora/server/internal/repository"
+	"rankora/server/internal/response"
 	"rankora/server/internal/scoring"
 
 	"github.com/gin-gonic/gin"
@@ -20,26 +24,113 @@ import (
 
 type APIHandler struct {
 	db              *database.Database
+	cfg             *config.Config
 	profileRepo     *repository.ProfileRepository
 	projectRepo     *repository.ProjectRepository
 	skillRepo       *repository.SkillRepository
 	leaderboardRepo *repository.LeaderboardRepository
+	syncRepo        *repository.SyncRepository
+	assessmentRepo  *repository.AssessmentRepository
+	communityRepo   *repository.CommunityRepository
+	hiringRepo      *repository.HiringRepository
+	notifRepo       *repository.NotificationRepository
+	ghClient        *github.Client
+	cfClient        *codeforces.Client
 }
 
 func NewAPIHandler(
 	db *database.Database,
+	cfg *config.Config,
 	profileRepo *repository.ProfileRepository,
 	projectRepo *repository.ProjectRepository,
 	skillRepo *repository.SkillRepository,
 	leaderboardRepo *repository.LeaderboardRepository,
+	syncRepo *repository.SyncRepository,
+	assessmentRepo *repository.AssessmentRepository,
+	communityRepo *repository.CommunityRepository,
+	hiringRepo *repository.HiringRepository,
+	notifRepo *repository.NotificationRepository,
+	ghClient *github.Client,
+	cfClient *codeforces.Client,
 ) *APIHandler {
 	return &APIHandler{
 		db:              db,
+		cfg:             cfg,
 		profileRepo:     profileRepo,
 		projectRepo:     projectRepo,
 		skillRepo:       skillRepo,
 		leaderboardRepo: leaderboardRepo,
+		syncRepo:        syncRepo,
+		assessmentRepo:  assessmentRepo,
+		communityRepo:   communityRepo,
+		hiringRepo:      hiringRepo,
+		notifRepo:       notifRepo,
+		ghClient:        ghClient,
+		cfClient:        cfClient,
 	}
+}
+
+// HealthLive is a shallow liveness probe
+func (h *APIHandler) HealthLive(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"status":    "live",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+// HealthReady is a deep readiness probe verifying database connectivity
+func (h *APIHandler) HealthReady(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	defer cancel()
+
+	if h.db == nil || h.db.Pool == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status":    "unhealthy",
+			"database":  "disconnected",
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	start := time.Now()
+	if err := h.db.Ping(ctx); err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"status":    "unhealthy",
+			"database":  "unavailable: " + err.Error(),
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":           "ready",
+		"database":         "connected",
+		"latencyMs":        time.Since(start).Milliseconds(),
+		"timestamp":        time.Now().UTC().Format(time.RFC3339),
+		"algorithmVersion": scoring.DefaultAlgorithmVersion,
+	})
+}
+
+func (h *APIHandler) getAuthenticatedProfile(c *gin.Context) (*models.DeveloperProfile, bool) {
+	clerkID := auth.GetClerkUserID(c)
+	if clerkID == "" {
+		response.Unauthorized(c, "Authentication token required or expired.")
+		return nil, false
+	}
+	if h.profileRepo == nil {
+		response.Internal(c, "Database service is currently unavailable.")
+		return nil, false
+	}
+	profile, err := h.profileRepo.GetByClerkID(c.Request.Context(), clerkID)
+	if err != nil {
+		response.Internal(c, "Failed querying authenticated profile: "+err.Error())
+		return nil, false
+	}
+	if profile == nil {
+		response.NotFound(c, "Developer profile not found. Please complete onboarding.")
+		return nil, false
+	}
+	return profile, true
 }
 
 // HealthCheck verifies Neon database connectivity and service state
@@ -228,6 +319,27 @@ func (h *APIHandler) CompleteOnboarding(c *gin.Context) {
 		"success": true,
 		"message": "Onboarding completed successfully and persisted in Neon Serverless PostgreSQL.",
 		"profile": saved,
+	})
+}
+
+// DeleteMyAccount permanently deletes the authenticated user's profile and data
+func (h *APIHandler) DeleteMyAccount(c *gin.Context) {
+	clerkID := auth.GetClerkUserID(c)
+	if clerkID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized identity."})
+		return
+	}
+
+	if h.profileRepo != nil {
+		if err := h.profileRepo.DeleteProfile(c.Request.Context(), clerkID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed deleting account", "details": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Account data and verified records purged successfully.",
 	})
 }
 

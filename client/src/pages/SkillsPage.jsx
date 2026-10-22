@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { CURRENT_USER, GROWTH_HISTORY } from '../lib/mockData';
@@ -8,33 +8,55 @@ import { Button } from '../components/ui/Button';
 import { FilterBar } from '../components/common/FilterBar';
 import { AchievementBadge } from '../components/common/AchievementBadge';
 import { SkillBadge } from '../components/common/SkillBadge';
-import { Award, ChevronRight, X } from 'lucide-react';
+import { Award, ChevronRight, ChevronDown, X, ShieldCheck } from 'lucide-react';
 
 export function SkillsPage() {
   const [tab, setTab] = useState('Skills');
   const [timeRange, setTimeRange] = useState('6M');
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [selectedBadge, setSelectedBadge] = useState(null);
+  const [showAllSkills, setShowAllSkills] = useState(false);
   const { profile } = useDeveloperProfile();
   const user = profile || CURRENT_USER;
 
   const tabs = ['Skills', 'Badges', 'Certificates'];
   const timeRanges = ['1M', '3M', '6M', '1Y'];
 
-  const skillsList = [
+  const allSkillsList = [
     { name: "Python", level: "Expert", iconColor: "text-[#3B82F6]", bg: "bg-blue-50", category: "Languages", score: 95, repos: 8, problemsSolved: 142 },
     { name: "React", level: "Advanced", iconColor: "text-[#06B6D4]", bg: "bg-cyan-50", category: "Frontend", score: 88, repos: 12, problemsSolved: 64 },
     { name: "Node.js", level: "Advanced", iconColor: "text-[#10B981]", bg: "bg-emerald-50", category: "Backend", score: 86, repos: 9, problemsSolved: 50 },
     { name: "Java", level: "Intermediate", iconColor: "text-[#EF4444]", bg: "bg-red-50", category: "Languages", score: 74, repos: 4, problemsSolved: 85 },
     { name: "SQL", level: "Advanced", iconColor: "text-[#6366F1]", bg: "bg-indigo-50", category: "Databases", score: 89, repos: 10, problemsSolved: 90 },
     { name: "MongoDB", level: "Intermediate", iconColor: "text-[#16A34A]", bg: "bg-green-50", category: "Databases", score: 76, repos: 6, problemsSolved: 32 },
+    { name: "Go", level: "Advanced", iconColor: "text-[#00ADD8]", bg: "bg-sky-50", category: "Backend", score: 84, repos: 5, problemsSolved: 48 },
+    { name: "TypeScript", level: "Advanced", iconColor: "text-[#3178C6]", bg: "bg-blue-50", category: "Languages", score: 87, repos: 11, problemsSolved: 58 },
   ];
+
+  const visibleSkills = showAllSkills ? allSkillsList : allSkillsList.slice(0, 6);
 
   const certificatesList = [
     { id: 'c1', title: 'AWS Certified Cloud Practitioner', issuer: 'Amazon Web Services', date: 'Aug 2026', credentialId: 'AWS-992144' },
     { id: 'c2', title: 'Meta Front-End Developer Professional', issuer: 'Meta', date: 'Jun 2026', credentialId: 'META-771203' },
     { id: 'c3', title: 'HackerRank Problem Solving (Advanced)', issuer: 'HackerRank', date: 'Jul 2026', credentialId: 'HR-ADV-552' }
   ];
+
+  const badges = user?.badges || [];
+  const skillsBreakdown = user?.skillsBreakdown || [];
+
+  // Close modals on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedSkill(null);
+        setSelectedBadge(null);
+      }
+    };
+    if (selectedSkill || selectedBadge) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedSkill, selectedBadge]);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -74,7 +96,7 @@ export function SkillsPage() {
                 className="space-y-5"
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {skillsList.map((skill, index) => (
+                  {visibleSkills.map((skill, index) => (
                     <motion.div
                       key={skill.name}
                       initial={{ opacity: 0, y: 10 }}
@@ -92,10 +114,24 @@ export function SkillsPage() {
                   ))}
                 </div>
 
-                <div className="text-xs text-[#1D4ED8] font-bold cursor-pointer hover:underline pl-1 flex items-center gap-1">
-                  <span>+ 2 more skills evaluated</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </div>
+                {allSkillsList.length > 6 && (
+                  <button
+                    onClick={() => setShowAllSkills(prev => !prev)}
+                    aria-expanded={showAllSkills}
+                    className="text-xs text-[#1D4ED8] font-bold cursor-pointer hover:underline pl-1 flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-md py-1"
+                  >
+                    <span>
+                      {showAllSkills 
+                        ? "Show fewer skills" 
+                        : `+ ${allSkillsList.length - 6} more verified skills evaluated`}
+                    </span>
+                    {showAllSkills ? (
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    ) : (
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
 
                 {/* Achievement Badges Section */}
                 <Card className="p-6 space-y-4">
@@ -103,25 +139,33 @@ export function SkillsPage() {
                     <h2 className="text-base font-bold text-[#15264B]">
                       Achievement Badges
                     </h2>
-                    <button 
-                      onClick={() => setTab('Badges')}
-                      className="text-xs text-[#1D4ED8] font-semibold hover:underline cursor-pointer"
-                    >
-                      View All
-                    </button>
+                    {badges.length > 0 && (
+                      <button 
+                        onClick={() => setTab('Badges')}
+                        className="text-xs text-[#1D4ED8] font-semibold hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] rounded-md px-1.5 py-0.5"
+                      >
+                        View All ({badges.length})
+                      </button>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {user.badges.slice(0, 4).map((b) => (
-                      <AchievementBadge
-                        key={b.id}
-                        title={b.title}
-                        icon={b.icon}
-                        colorScheme={b.colorScheme}
-                        onClick={() => setSelectedBadge(b)}
-                      />
-                    ))}
-                  </div>
+                  {badges.length === 0 ? (
+                    <div className="py-6 text-center text-xs text-[#687793]">
+                      No achievement badges earned yet. Complete challenge assessments to unlock badges.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {badges.slice(0, 4).map((b) => (
+                        <AchievementBadge
+                          key={b.id}
+                          title={b.title}
+                          icon={b.icon}
+                          colorScheme={b.colorScheme}
+                          onClick={() => setSelectedBadge(b)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             )}
@@ -143,30 +187,45 @@ export function SkillsPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
-                    {user.badges.map((b, index) => (
-                      <motion.div
-                        key={b.id}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.25, delay: index * 0.05 }}
-                        whileHover={{ y: -4, scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setSelectedBadge(b)}
-                        className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] text-center flex flex-col items-center justify-center space-y-2 hover:border-[#CBD8EB] cursor-pointer transition-shadow shadow-2xs group"
-                      >
-                        <div className="w-14 h-14 rounded-full bg-white border border-[#E2EAF5] flex items-center justify-center text-3xl shadow-xs group-hover:scale-110 transition-transform duration-200">
-                          {b.icon}
-                        </div>
-                        <div className="text-xs font-bold text-[#15264B] leading-tight">
-                          {b.title}
-                        </div>
-                        <span className="text-[10px] text-[#059669] font-bold bg-[#E4F8EF] px-2 py-0.5 rounded-full">
-                          {b.date}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
+                  {badges.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-[#687793]">
+                      No verified badges recorded yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-2">
+                      {badges.map((b, index) => (
+                        <motion.div
+                          key={b.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.25, delay: index * 0.05 }}
+                          whileHover={{ y: -4, scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setSelectedBadge(b)}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`View details for badge ${b.title}`}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setSelectedBadge(b);
+                            }
+                          }}
+                          className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] text-center flex flex-col items-center justify-center space-y-2 hover:border-[#CBD8EB] cursor-pointer transition-shadow shadow-2xs group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                        >
+                          <div className="w-14 h-14 rounded-full bg-white border border-[#E2EAF5] flex items-center justify-center text-3xl shadow-xs group-hover:scale-110 transition-transform duration-200">
+                            {b.icon}
+                          </div>
+                          <div className="text-xs font-bold text-[#15264B] leading-tight">
+                            {b.title}
+                          </div>
+                          <span className="text-[10px] text-[#059669] font-bold bg-[#E4F8EF] px-2 py-0.5 rounded-full">
+                            {b.date}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </Card>
               </motion.div>
             )}
@@ -217,7 +276,7 @@ export function SkillsPage() {
 
         </div>
 
-        {/* Right Column (5 Cols): Your Growth Panel matching Panel 4 */}
+        {/* Right Column (5 Cols): Your Growth Panel */}
         <Card className="lg:col-span-5 p-6 space-y-5">
           
           <div className="flex items-center justify-between">
@@ -226,12 +285,18 @@ export function SkillsPage() {
             </h2>
 
             {/* Time filters */}
-            <div className="flex items-center gap-1 bg-[#F5F8FF] p-1 rounded-full text-[11px] font-semibold border border-[#E2EAF5]">
+            <div 
+              role="tablist" 
+              aria-label="Growth history range"
+              className="flex items-center gap-1 bg-[#F5F8FF] p-1 rounded-full text-[11px] font-semibold border border-[#E2EAF5]"
+            >
               {timeRanges.map((tr) => (
                 <button
                   key={tr}
+                  role="tab"
+                  aria-selected={timeRange === tr}
                   onClick={() => setTimeRange(tr)}
-                  className={`px-2.5 py-0.5 rounded-full transition cursor-pointer ${
+                  className={`px-2.5 py-0.5 rounded-full transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] ${
                     timeRange === tr 
                       ? 'bg-[#15264B] text-white font-bold shadow-2xs' 
                       : 'text-[#687793] hover:text-[#15264B]'
@@ -246,7 +311,7 @@ export function SkillsPage() {
           {/* Big Score Callout */}
           <div>
             <div className="text-3xl sm:text-4xl font-extrabold text-[#15264B] flex items-baseline gap-2">
-              <span>{user.totalScore}</span>
+              <span>{user?.totalScore || 876}</span>
               <span className="text-xs font-semibold text-[#059669] bg-[#E4F8EF] px-2 py-0.5 rounded-full border border-[#B9EED9]">
                 Current Score
               </span>
@@ -283,43 +348,45 @@ export function SkillsPage() {
           {/* Score Breakdown Bars with weights */}
           <div className="space-y-3 pt-2 border-t border-[#E2EAF5]">
             <div className="text-xs font-bold text-[#15264B]">Score Breakdown</div>
-            {user.skillsBreakdown.map((item) => (
-              <div key={item.name} className="flex items-center justify-between text-xs">
-                <span className="text-[#687793] font-medium">{item.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-[#15264B]">{item.score}</span>
-                  <span className="text-[11px] text-[#687793] font-mono w-8 text-right">{item.weight}</span>
+            {skillsBreakdown.length === 0 ? (
+              <div className="text-xs text-[#687793]">No breakdown available.</div>
+            ) : (
+              skillsBreakdown.map((item) => (
+                <div key={item.name} className="flex items-center justify-between text-xs">
+                  <span className="text-[#687793] font-medium">{item.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[#15264B]">{item.score}</span>
+                    <span className="text-[11px] text-[#687793] font-mono w-8 text-right">{item.weight}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
-          {/* Motivational Cheer Box matching Screen 4 with fluid bounce */}
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            className="p-3.5 rounded-2xl bg-[#FFF8DC] border border-[#FFE89A] flex items-center gap-3 cursor-pointer shadow-2xs"
-          >
-            <motion.div 
-              animate={{ x: [0, 4, 0] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="text-2xl"
-            >
-              🏃
-            </motion.div>
-            <div className="text-xs">
-              <div className="font-bold text-[#B45309]">Keep going!</div>
-              <div className="text-[#92400E] text-[11px]">You're in the top 1% globally! 🚀</div>
+          {/* Verified Evidence Standing Card */}
+          <div className="p-3.5 rounded-2xl bg-[#FFF8DC] border border-[#FFE89A] flex items-center gap-3 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center text-base shrink-0">
+              <ShieldCheck className="w-4 h-4 text-[#B45309]" />
             </div>
-          </motion.div>
+            <div className="text-xs">
+              <div className="font-bold text-[#B45309]">Verified Global Standing</div>
+              <div className="text-[#92400E] text-[11px]">Rank #{user?.globalRank || 42} • {user?.league || "Diamond League"} Tier (Top 5%)</div>
+            </div>
+          </div>
 
         </Card>
 
       </div>
 
-      {/* Skill Detail Modal with Fluid Spring */}
+      {/* Skill Detail Modal */}
       <AnimatePresence>
         {selectedSkill && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="skill-modal-title"
+          >
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -342,13 +409,14 @@ export function SkillsPage() {
                     {selectedSkill.name[0]}
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-[#15264B]">{selectedSkill.name}</h3>
+                    <h3 id="skill-modal-title" className="text-base font-bold text-[#15264B]">{selectedSkill.name}</h3>
                     <span className="text-xs text-[#059669] font-bold">{selectedSkill.level} Proficiency</span>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedSkill(null)}
-                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close skill details"
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -373,7 +441,7 @@ export function SkillsPage() {
                 Demonstrated through consistent commits, challenge solutions, and verified production code audits.
               </p>
 
-              <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedSkill(null)}>
+              <Button variant="secondary" size="md" className="w-full font-semibold" onClick={() => setSelectedSkill(null)}>
                 Close
               </Button>
             </motion.div>
@@ -381,10 +449,15 @@ export function SkillsPage() {
         )}
       </AnimatePresence>
 
-      {/* Badge Detail Modal with Fluid Spring */}
+      {/* Badge Detail Modal */}
       <AnimatePresence>
         {selectedBadge && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="badge-modal-title"
+          >
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -404,7 +477,8 @@ export function SkillsPage() {
               <div className="flex justify-end">
                 <button 
                   onClick={() => setSelectedBadge(null)}
-                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close badge details"
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -415,7 +489,7 @@ export function SkillsPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
+                <h3 id="badge-modal-title" className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
                 <span className="text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full inline-block mt-1">
                   {selectedBadge.date || "Verified Achievement"}
                 </span>
@@ -430,7 +504,7 @@ export function SkillsPage() {
                 <p className="text-[#687793]">{selectedBadge.criteria}</p>
               </div>
 
-              <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedBadge(null)}>
+              <Button variant="secondary" size="md" className="w-full font-semibold" onClick={() => setSelectedBadge(null)}>
                 Close
               </Button>
             </motion.div>

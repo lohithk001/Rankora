@@ -20,6 +20,9 @@ import { MarketValuePage } from '../pages/MarketValuePage';
 import { RecruiterSearch } from '../pages/RecruiterSearch';
 import { SettingsPage } from '../pages/SettingsPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { PrivacyPolicyPage } from '../pages/PrivacyPolicyPage';
+import { TermsOfServicePage } from '../pages/TermsOfServicePage';
+import { CookieConsentBanner } from '../components/common/CookieConsentBanner';
 
 export function AppRoutes() {
   return (
@@ -35,6 +38,8 @@ export function AppRoutes() {
             <Route path="/sign-in/*" element={<SignInPage />} />
             <Route path="/sign-up/*" element={<SignUpPage />} />
             <Route path="/onboarding" element={<OnboardingRoute />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
           </Route>
 
           {/* APPLICATION & DASHBOARD ROUTES — PROTECTED WITH SIDEBAR */}
@@ -59,6 +64,7 @@ export function AppRoutes() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        <CookieConsentBanner />
       </DeveloperProfileProvider>
     </BrowserRouter>
   );

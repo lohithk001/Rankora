@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../ui/Button';
 import { AlertCircle, X } from 'lucide-react';
@@ -13,10 +13,27 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   variant = "danger" // 'danger', 'primary'
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+          aria-describedby="confirm-dialog-desc"
+        >
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -39,15 +56,16 @@ export function ConfirmDialog({
               </div>
               <button 
                 onClick={onClose}
-                className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close dialog"
+                className="text-[#687793] hover:text-[#15264B] p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2563EB]"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div>
-              <h3 className="text-lg font-bold text-[#15264B]">{title}</h3>
-              <p className="text-sm text-[#687793] mt-1.5 leading-relaxed">{description}</p>
+              <h3 id="confirm-dialog-title" className="text-lg font-bold text-[#15264B]">{title}</h3>
+              <p id="confirm-dialog-desc" className="text-sm text-[#687793] mt-1.5 leading-relaxed">{description}</p>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3">
@@ -59,7 +77,6 @@ export function ConfirmDialog({
                 size="md" 
                 onClick={() => {
                   onConfirm();
-                  onClose();
                 }}
               >
                 {confirmLabel}

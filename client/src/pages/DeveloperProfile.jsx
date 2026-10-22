@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -24,6 +24,8 @@ import { DeveloperAvatar } from '../components/common/DeveloperAvatar';
 import { AchievementBadge } from '../components/common/AchievementBadge';
 import { SkillBadge } from '../components/common/SkillBadge';
 import { FilterBar } from '../components/common/FilterBar';
+import { EmptyState } from '../components/common/EmptyState';
+import { LoadingSkeleton } from '../components/common/LoadingSkeleton';
 
 function CodeforcesIcon({ className = "w-4 h-4" }) {
   return (
@@ -59,6 +61,19 @@ export function DeveloperProfile() {
   const [activeTab, setActiveTab] = useState('Overview');
   const [selectedBadge, setSelectedBadge] = useState(null);
 
+  // Close badge modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedBadge(null);
+      }
+    };
+    if (selectedBadge) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedBadge]);
+
   const profileTabs = ['Overview', 'Projects', 'Assessments', 'Activity'];
 
   // Resolve developer from database, logged-in profile, Codeforces Top 100, or fallback to CURRENT_USER
@@ -71,6 +86,11 @@ export function DeveloperProfile() {
     }
   } else if (loggedInProfile) {
     user = loggedInProfile;
+  }
+
+  // Loading skeleton state
+  if (onboardingStatus?.isLoading) {
+    return <LoadingSkeleton type="profile" />;
   }
 
   // Unknown username graceful state
@@ -144,39 +164,43 @@ export function DeveloperProfile() {
               />
 
               <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl font-extrabold text-[#15264B] tracking-tight">
+                <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                  <h1 className="text-xl sm:text-2xl font-extrabold text-[#15264B] tracking-tight break-words">
                     {user.displayName}
                   </h1>
                   <CheckCircle2 className="w-5 h-5 text-[#3B82F6] fill-[#3B82F6]/20 shrink-0" />
                   
-                  {/* Social Links */}
-                  <div className="flex items-center gap-2 text-[#687793] ml-2">
-                    <a 
-                      href="https://github.com/lohith001" 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="p-1 hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-lg transition"
-                      title="GitHub profile"
-                    >
-                      <GithubIcon className="w-4 h-4" />
-                    </a>
-                    <a 
-                      href="https://linkedin.com" 
-                      target="_blank" 
-                      rel="noreferrer" 
-                      className="p-1 hover:text-[#0A66C2] hover:bg-[#F5F8FF] rounded-lg transition"
-                      title="LinkedIn profile"
-                    >
-                      <LinkedinIcon className="w-4 h-4" />
-                    </a>
-                    {user.codeforcesUrl && (
+                  {/* Verified External Profile Links */}
+                  <div className="flex items-center gap-1.5 text-[#687793] ml-1">
+                    {user.githubHandle && (
                       <a 
-                        href={user.codeforcesUrl} 
+                        href={user.githubHandle.startsWith('http') ? user.githubHandle : `https://github.com/${user.githubHandle.replace(/^@/, '')}`}
                         target="_blank" 
-                        rel="noreferrer" 
-                        className="p-1 hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-lg transition"
-                        title="Codeforces profile"
+                        rel="noopener noreferrer" 
+                        className="p-1.5 hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-lg transition focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                        aria-label={`${user.displayName}'s GitHub repository profile`}
+                      >
+                        <GithubIcon className="w-4 h-4" />
+                      </a>
+                    )}
+                    {user.linkedinUrl && (
+                      <a 
+                        href={user.linkedinUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="p-1.5 hover:text-[#0A66C2] hover:bg-[#F5F8FF] rounded-lg transition focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                        aria-label={`${user.displayName}'s LinkedIn profile`}
+                      >
+                        <LinkedinIcon className="w-4 h-4" />
+                      </a>
+                    )}
+                    {(user.codeforcesUrl || user.codeforcesHandle) && (
+                      <a 
+                        href={user.codeforcesUrl || `https://codeforces.com/profile/${user.codeforcesHandle}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="p-1.5 hover:text-[#15264B] hover:bg-[#F5F8FF] rounded-lg transition focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                        aria-label={`${user.displayName}'s Codeforces competitive profile`}
                       >
                         <CodeforcesIcon className="w-4 h-4" />
                       </a>
@@ -287,11 +311,12 @@ export function DeveloperProfile() {
               </span>
             </motion.div>
 
-            {/* Skills Count with mini bar chart graphic & chevron */}
+            {/* Verified Skills Metric */}
             <motion.div whileHover={{ y: -3, scale: 1.015 }}>
               <Link 
                 to="/skills"
-                className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex flex-col justify-between hover:border-[#CBD8EB] hover:bg-[#EAF3FF]/40 transition group h-full shadow-2xs"
+                className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex flex-col justify-between hover:border-[#CBD8EB] hover:bg-[#EAF3FF]/40 transition group h-full shadow-2xs focus-visible:ring-2 focus-visible:ring-[#2563EB]"
+                aria-label="View verified skills breakdown"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-semibold text-[#687793] uppercase tracking-wider">
@@ -300,17 +325,12 @@ export function DeveloperProfile() {
                   <ChevronRight className="w-4 h-4 text-[#687793] group-hover:text-[#15264B] transition-transform group-hover:translate-x-0.5" />
                 </div>
                 
-                {/* 5-bar mini chart */}
-                <div className="flex items-end gap-1.5 h-7 py-1 my-1">
-                  <span className="w-2.5 h-4 rounded-sm bg-[#4CC9A6]" />
-                  <span className="w-2.5 h-6 rounded-sm bg-[#3B82F6]" />
-                  <span className="w-2.5 h-5 rounded-sm bg-[#A78BFA]" />
-                  <span className="w-2.5 h-3.5 rounded-sm bg-[#FF6B6B]" />
-                  <span className="w-2.5 h-5 rounded-sm bg-[#FBBF24]" />
+                <div className="text-xl sm:text-2xl font-black text-[#15264B] mt-1">
+                  {user.verifiedSkills ? user.verifiedSkills.length : (user.skills ? user.skills.length : 6)}
                 </div>
 
-                <span className="text-xs font-bold text-[#1D4ED8]">
-                  {user.verifiedSkills ? `${user.verifiedSkills.length} Verified` : "6 Verified"}
+                <span className="text-xs font-bold text-[#1D4ED8] mt-2">
+                  Verified Signals →
                 </span>
               </Link>
             </motion.div>
@@ -398,37 +418,45 @@ export function DeveloperProfile() {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <Card className="p-6 space-y-4">
-              <h3 className="font-bold text-base text-[#15264B]">Verified Projects</h3>
-              <p className="text-xs text-[#687793]">Evidence evaluated from GitHub commits and code review audits.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <motion.div 
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2 cursor-pointer transition-shadow"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-[#15264B]">Distributed Cache Engine</span>
-                    <Badge variant="mint" size="sm">High Impact</Badge>
-                  </div>
-                  <p className="text-xs text-[#687793]">In-memory distributed key-value store with raft consensus in Go.</p>
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#15264B]">
-                    <span>Go</span> • <span>Raft</span> • <span>Docker</span>
-                  </div>
-                </motion.div>
-
-                <motion.div 
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2 cursor-pointer transition-shadow"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-[#15264B]">Rankora Interactive Engine</span>
-                    <Badge variant="blue" size="sm">Fullstack</Badge>
-                  </div>
-                  <p className="text-xs text-[#687793]">Developer analytics platform with real-time ranking and skill tracking.</p>
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#15264B]">
-                    <span>React</span> • <span>Tailwind</span> • <span>PostgreSQL</span>
-                  </div>
-                </motion.div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-[#15264B]">Verified Projects</h3>
+                  <p className="text-xs text-[#687793]">Evidence evaluated from GitHub commits and code review audits.</p>
+                </div>
+                {user.projects && user.projects.length > 0 && (
+                  <Badge variant="blue">{user.projects.length} Verified</Badge>
+                )}
               </div>
+
+              {(!user.projects || user.projects.length === 0) ? (
+                <EmptyState
+                  title="No verified projects yet"
+                  description="Connect your GitHub repository to generate automated code review signals, commit frequency, and architecture evaluation."
+                  icon={GitBranch}
+                  actionLabel="Configure in Settings"
+                  onAction={() => navigate('/settings')}
+                  className="my-4"
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {user.projects.map((proj, idx) => (
+                    <motion.div 
+                      key={idx}
+                      whileHover={{ y: -3, scale: 1.015 }}
+                      className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] space-y-2 cursor-pointer transition-shadow"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-[#15264B]">{proj.title}</span>
+                        <Badge variant={proj.badgeVariant || "mint"} size="sm">{proj.badge || "High Impact"}</Badge>
+                      </div>
+                      <p className="text-xs text-[#687793]">{proj.description}</p>
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#15264B]">
+                        {(proj.techStack || ['Fullstack', 'Web']).join(' • ')}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </Card>
           </motion.div>
         )}
@@ -442,30 +470,41 @@ export function DeveloperProfile() {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
           >
             <Card className="p-6 space-y-4">
-              <h3 className="font-bold text-base text-[#15264B]">Completed Assessments</h3>
-              <div className="space-y-3 pt-2">
-                <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileCheck className="w-5 h-5 text-[#059669]" />
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-[#15264B]">LeetCode Algorithmic Mastery</div>
-                      <div className="text-xs text-[#687793]">300+ problems evaluated • Top 10% percentile</div>
-                    </div>
-                  </div>
-                  <Badge variant="mint">Verified</Badge>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-[#15264B]">Completed Assessments</h3>
+                  <p className="text-xs text-[#687793]">Proctored problem-solving and algorithmic skill benchmarks.</p>
                 </div>
-
-                <div className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileCheck className="w-5 h-5 text-[#3B82F6]" />
-                    <div>
-                      <div className="font-bold text-xs sm:text-sm text-[#15264B]">System Design Architect Challenge</div>
-                      <div className="text-xs text-[#687793]">Scalable microservices & event streaming evaluation</div>
-                    </div>
-                  </div>
-                  <Badge variant="blue">Advanced</Badge>
-                </div>
+                {user.assessments && user.assessments.length > 0 && (
+                  <Badge variant="mint">{user.assessments.length} Completed</Badge>
+                )}
               </div>
+
+              {(!user.assessments || user.assessments.length === 0) ? (
+                <EmptyState
+                  title="No completed assessments"
+                  description="Complete a verified Rankora algorithmic or architecture assessment to boost your confidence percentile."
+                  icon={FileCheck}
+                  actionLabel="Browse Available Challenges"
+                  onAction={() => navigate('/assessments')}
+                  className="my-4"
+                />
+              ) : (
+                <div className="space-y-3 pt-2">
+                  {user.assessments.map((assm, idx) => (
+                    <div key={idx} className="p-4 rounded-2xl bg-[#F5F8FF] border border-[#E2EAF5] flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileCheck className="w-5 h-5 text-[#059669]" />
+                        <div>
+                          <div className="font-bold text-xs sm:text-sm text-[#15264B]">{assm.title}</div>
+                          <div className="text-xs text-[#687793]">{assm.scoreDescription}</div>
+                        </div>
+                      </div>
+                      <Badge variant={assm.badgeVariant || "mint"}>{assm.status || "Verified"}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </motion.div>
         )}
@@ -500,7 +539,12 @@ export function DeveloperProfile() {
       {/* Achievement Detail Dialog with Fluid Motion */}
       <AnimatePresence>
         {selectedBadge && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dev-badge-title"
+          >
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -520,7 +564,8 @@ export function DeveloperProfile() {
               <div className="flex justify-end">
                 <button 
                   onClick={() => setSelectedBadge(null)}
-                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close dialog"
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -531,7 +576,7 @@ export function DeveloperProfile() {
               </div>
 
               <div>
-                <h3 className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
+                <h3 id="dev-badge-title" className="text-lg font-extrabold text-[#15264B]">{selectedBadge.title}</h3>
                 <span className="text-[11px] font-bold text-[#059669] bg-[#E4F8EF] px-2.5 py-0.5 rounded-full inline-block mt-1">
                   {selectedBadge.date || "Verified Achievement"}
                 </span>
@@ -546,7 +591,7 @@ export function DeveloperProfile() {
                 <p className="text-[#687793]">{selectedBadge.criteria}</p>
               </div>
 
-              <Button variant="secondary" size="md" className="w-full" onClick={() => setSelectedBadge(null)}>
+              <Button variant="secondary" size="md" className="w-full font-semibold" onClick={() => setSelectedBadge(null)}>
                 Close
               </Button>
             </motion.div>

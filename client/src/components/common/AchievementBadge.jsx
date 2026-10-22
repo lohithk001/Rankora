@@ -22,6 +22,13 @@ export function AchievementBadge({
 }) {
   const IconComponent = typeof icon === 'string' && ICON_MAP[icon] ? ICON_MAP[icon] : null;
 
+  const handleKeyDown = (e) => {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   const colorStyles = {
     amber: "bg-gradient-to-b from-[#FFF8DC] to-[#FFE89A] text-[#B45309] border-[#FDE68A]",
     teal: "bg-gradient-to-b from-[#E4F8EF] to-[#BAE6FD] text-[#0D9488] border-[#99F6E4]",
@@ -34,11 +41,15 @@ export function AchievementBadge({
   return (
     <motion.div 
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={onClick ? 0 : undefined}
+      role={onClick ? "button" : undefined}
+      aria-label={onClick ? `Achievement: ${title}` : undefined}
       whileHover={onClick ? { y: -3 } : undefined}
       whileTap={onClick ? { scale: 0.96 } : undefined}
       className={cn(
-        "flex flex-col items-center text-center p-2 group select-none",
-        onClick && "cursor-pointer",
+        "flex flex-col items-center text-center p-2 group select-none rounded-xl",
+        onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]",
         className
       )}
     >

@@ -1,17 +1,21 @@
 package config
 
 import (
+	"errors"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Port                     string
-	Environment              string
+	AppEnv                   string
+	APIHost                  string
+	APIPort                  string
+	AllowedOrigins           []string
 	DatabaseURL              string
 	MigrationDatabaseURL     string
 	DBMaxConns               int32
@@ -19,37 +23,51 @@ type Config struct {
 	DBMaxConnLifetimeMinutes int
 	DBMaxConnIdleMinutes     int
 	DBHealthTimeoutSeconds   int
+	ClerkSecretKey           string
 	ClerkJWKSURL             string
 	ClerkIssuer              string
 	ClerkPEMPublicKey        string
-	AllowedOrigins           []string
+	GitHubClientID           string
+	GitHubClientSecret       string
+	GitHubCallbackURL        string
+	GitHubAppURL             string
+	RateLimitDuration        time.Duration
+	RateLimitMaxRequests     int
+	RequestTimeout           time.Duration
+	LogLevel                 string
+	TokenEncryptionKey       string
 }
 
-func LoadConfig() *Config {
-	// Attempt to load .env if present; silent if missing
+func LoadConfig() (*Config, error) {
+	// Attempt to load .env if present; silent if missing in containerized environments
 	if err := godotenv.Load(); err != nil {
-		log.Println("[Config] No .env file found or failed to parse, relying on OS environment variables.")
+		log.Println("[Config] Notice: .env file not loaded or absent, reading OS environment variables.")
 	}
 
-	port := getEnv("PORT", "8080")
-	env := getEnv("ENVIRONMENT", "development")
+	appEnv := getEnv("APP_ENV", getEnv("ENVIRONMENT", "development"))
+	apiHost := getEnv("API_HOST", "0.0.0.0")
+	apiPort := getEnv("API_PORT", getEnv("PORT", "8080"))
+
 	dbURL := os.Getenv("DATABASE_URL")
-	migrationDBURL := os.Getenv("MIGRATION_DATABASE_URL")
-	if migrationDBURL == "" {
-		migrationDBURL = dbURL
-	}
+	migrationDBURL := getEnv("MIGRATION_DATABASE_URL", dbURL)
 
-	maxConns := int32(getEnvAsInt("DB_MAX_CONNS", 15))
-	minConns := int32(getEnvAsInt("DB_MIN_CONNS", 2))
-	maxLifetime := getEnvAsInt("DB_MAX_CONN_LIFETIME_MINUTES", 30)
-	maxIdle := getEnvAsInt("DB_MAX_CONN_IDLE_MINUTES", 5)
-	healthTimeout := getEnvAsInt("DB_HEALTH_TIMEOUT_SECONDS", 5)
+	dbMaxConns := int32(getEnvAsInt("DB_MAX_CONNS", 15))
+	dbMinConns := int32(getEnvAsInt("DB_MIN_CONNS", 2))
+	dbMaxConnLifetime := getEnvAsInt("DB_MAX_CONN_LIFETIME_MINUTES", 30)
+	dbMaxConnIdle := getEnvAsInt("DB_MAX_CONN_IDLE_MINUTES", 5)
+	dbHealthTimeout := getEnvAsInt("DB_HEALTH_TIMEOUT_SECONDS", 5)
 
-	clerkJWKS := getEnv("CLERK_JWKS_URL", "https://api.clerk.com/v1/jwks")
+	clerkSecretKey := os.Getenv("CLERK_SECRET_KEY")
+	clerkJWKSURL := getEnv("CLERK_JWKS_URL", "https://api.clerk.com/v1/jwks")
 	clerkIssuer := os.Getenv("CLERK_ISSUER")
 	clerkPEM := os.Getenv("CLERK_PEM_PUBLIC_KEY")
 
-	rawOrigins := getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173")
+	githubClientID := os.Getenv("GITHUB_CLIENT_ID")
+	githubClientSecret := os.Getenv("GITHUB_CLIENT_SECRET")
+	githubCallbackURL := getEnv("GITHUB_CALLBACK_URL", "http://localhost:8080/api/v1/integrations/github/callback")
+	githubAppURL := getEnv("GITHUB_APP_URL", "http://localhost:5173")
+
+	rawOrigins := getEnv("FRONTEND_ORIGINS", getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"))
 	var origins []string
 	for _, o := range strings.Split(rawOrigins, ",") {
 		trimmed := strings.TrimSpace(o)
@@ -58,21 +76,61 @@ func LoadConfig() *Config {
 		}
 	}
 
-	return &Config{
-		Port:                     port,
-		Environment:              env,
+	rateLimitMins := getEnvAsInt("RATE_LIMIT_WINDOW_MINUTES", 15)
+	rateLimitMax := getEnvAsInt("RATE_LIMIT_MAX_REQUESTS", 300)
+	requestTimeoutSecs := getEnvAsInt("REQUEST_TIMEOUT_SECONDS", 15)
+	logLevel := getEnv("LOG_LEVEL", "info")
+
+	// Token encryption key (32 bytes hex or string for AES-256)
+	tokenEncryptionKey := getEnv("TOKEN_ENCRYPTION_KEY", "rankora_deterministic_secret_32b!")
+
+	cfg := &Config{
+		AppEnv:                   appEnv,
+		APIHost:                  apiHost,
+		APIPort:                  apiPort,
+		AllowedOrigins:           origins,
 		DatabaseURL:              dbURL,
 		MigrationDatabaseURL:     migrationDBURL,
-		DBMaxConns:               maxConns,
-		DBMinConns:               minConns,
-		DBMaxConnLifetimeMinutes: maxLifetime,
-		DBMaxConnIdleMinutes:     maxIdle,
-		DBHealthTimeoutSeconds:   healthTimeout,
-		ClerkJWKSURL:             clerkJWKS,
+		DBMaxConns:               dbMaxConns,
+		DBMinConns:               dbMinConns,
+		DBMaxConnLifetimeMinutes: dbMaxConnLifetime,
+		DBMaxConnIdleMinutes:     dbMaxConnIdle,
+		DBHealthTimeoutSeconds:   dbHealthTimeout,
+		ClerkSecretKey:           clerkSecretKey,
+		ClerkJWKSURL:             clerkJWKSURL,
 		ClerkIssuer:              clerkIssuer,
 		ClerkPEMPublicKey:        clerkPEM,
-		AllowedOrigins:           origins,
+		GitHubClientID:           githubClientID,
+		GitHubClientSecret:       githubClientSecret,
+		GitHubCallbackURL:        githubCallbackURL,
+		GitHubAppURL:             githubAppURL,
+		RateLimitDuration:        time.Duration(rateLimitMins) * time.Minute,
+		RateLimitMaxRequests:     rateLimitMax,
+		RequestTimeout:           time.Duration(requestTimeoutSecs) * time.Second,
+		LogLevel:                 logLevel,
+		TokenEncryptionKey:       tokenEncryptionKey,
 	}
+
+	// In production, validate critical settings to prevent silent misconfiguration
+	if cfg.AppEnv == "production" {
+		if cfg.DatabaseURL == "" || isPlaceholderURL(cfg.DatabaseURL) {
+			return nil, errors.New("DATABASE_URL must be a valid connection string in production")
+		}
+		if len(cfg.AllowedOrigins) == 0 || cfg.AllowedOrigins[0] == "*" {
+			return nil, errors.New("explicit FRONTEND_ORIGINS must be configured in production (wildcards disallowed)")
+		}
+		if cfg.ClerkSecretKey == "" {
+			log.Println("[Config] WARNING: CLERK_SECRET_KEY is empty in production; server-side Clerk verification depends solely on JWKS")
+		}
+	}
+
+	return cfg, nil
+}
+
+func isPlaceholderURL(url string) bool {
+	return len(url) == 0 ||
+		url == "postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require" ||
+		url == "postgres://rankora:rankorapassword@localhost:5432/rankora_db"
 }
 
 func getEnv(key, defaultVal string) string {

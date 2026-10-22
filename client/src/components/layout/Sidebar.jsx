@@ -234,10 +234,20 @@ export function Sidebar({
         )}
 
         <div 
+          role="button"
+          tabIndex={0}
+          aria-label={`View ${profile.displayName}'s profile`}
           onClick={() => { navigate('/profile'); onCloseMobile?.(); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/profile');
+              onCloseMobile?.();
+            }
+          }}
           title={isCollapsed ? profile.displayName : undefined}
           className={cn(
-            "bg-white rounded-2xl border border-[#E2EAF5] shadow-xs cursor-pointer hover:border-[#CBD5E1] hover:shadow-sm transition-all select-none group",
+            "bg-white rounded-2xl border border-[#E2EAF5] shadow-xs cursor-pointer hover:border-[#CBD5E1] hover:shadow-sm transition-all select-none group focus-visible:ring-2 focus-visible:ring-[#2563EB] focus-visible:outline-none",
             isCollapsed ? "p-2 flex justify-center" : "p-2.5 sm:p-3 flex items-center justify-between"
           )}
         >

@@ -52,12 +52,28 @@ export function GrowthDashboard() {
     ];
   }, [timeRange]);
 
+  // Dynamic score change calculated from history dataset
+  const scoreChange = useMemo(() => {
+    if (!chartData || chartData.length < 2) return { text: '0.0%', isPositive: true };
+    const first = chartData[0].score;
+    const last = chartData[chartData.length - 1].score;
+    const diff = last - first;
+    const pct = first > 0 ? ((diff / first) * 100).toFixed(1) : '0.0';
+    return {
+      text: `${diff >= 0 ? '↑' : '↓'} ${Math.abs(pct)}%`,
+      isPositive: diff >= 0
+    };
+  }, [chartData]);
+
+  const stats = user?.stats || {};
   const metricCards = [
-    { label: 'Projects', value: user.stats.projects, sub: user.stats.projectsNew, subColor: 'text-[#059669]' },
-    { label: 'Assessments', value: user.stats.assessments, sub: user.stats.assessmentsCompleted, subColor: 'text-[#059669]' },
-    { label: 'Repositories', value: user.stats.repositories, sub: user.stats.repositoriesNew, subColor: 'text-[#059669]' },
-    { label: 'Streak', value: `${user.stats.streakDays} days`, sub: user.stats.streakMessage, subColor: 'text-[#D97706]' },
+    { label: 'Projects', value: stats.projects ?? 0, sub: stats.projectsNew || "Verified codebases", subColor: 'text-[#059669]' },
+    { label: 'Assessments', value: stats.assessments ?? 0, sub: stats.assessmentsCompleted || "Challenge tests passed", subColor: 'text-[#059669]' },
+    { label: 'Repositories', value: stats.repositories ?? 0, sub: stats.repositoriesNew || "Active repositories", subColor: 'text-[#059669]' },
+    { label: 'Streak', value: `${stats.streakDays ?? 0} days`, sub: stats.streakMessage || "Commit continuity", subColor: 'text-[#D97706]' },
   ];
+
+  const skillsBreakdown = user?.skillsBreakdown || [];
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -79,13 +95,19 @@ export function GrowthDashboard() {
         </div>
 
         {/* Time range pills */}
-        <div className="flex items-center gap-1 bg-white p-1 rounded-full text-xs font-semibold border border-[#E2EAF5] shadow-2xs">
+        <div 
+          role="tablist"
+          aria-label="Growth history range"
+          className="flex items-center gap-1 bg-white p-1 rounded-full text-xs font-semibold border border-[#E2EAF5] shadow-2xs"
+        >
           {timeRanges.map((tr) => (
             <motion.button
               key={tr}
+              role="tab"
+              aria-selected={timeRange === tr}
               whileTap={{ scale: 0.95 }}
               onClick={() => setTimeRange(tr)}
-              className={`px-3 py-1 rounded-full transition cursor-pointer ${
+              className={`px-3 py-1 rounded-full transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] ${
                 timeRange === tr 
                   ? 'bg-[#15264B] text-white font-bold shadow-2xs' 
                   : 'text-[#687793] hover:text-[#15264B]'
@@ -115,8 +137,12 @@ export function GrowthDashboard() {
                 </h2>
                 <span className="text-xs text-[#687793]">Signal trajectory across evaluations</span>
               </div>
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#E4F8EF] text-[#059669] font-bold text-xs border border-[#B9EED9]">
-                ↑ 7%
+              <div className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-xs border ${
+                scoreChange.isPositive 
+                  ? 'bg-[#E4F8EF] text-[#059669] border-[#B9EED9]' 
+                  : 'bg-[#FFE8E5] text-[#FF6B6B] border-[#FFD3CE]'
+              }`}>
+                {scoreChange.text}
               </div>
             </div>
 
@@ -164,15 +190,21 @@ export function GrowthDashboard() {
             </div>
 
             <div className="space-y-4 pt-1">
-              {user.skillsBreakdown.map((item) => (
-                <ProgressBar
-                  key={item.name}
-                  label={item.name}
-                  score={item.score}
-                  value={item.score}
-                  color={item.color}
-                />
-              ))}
+              {skillsBreakdown.length === 0 ? (
+                <div className="py-8 text-center text-xs text-[#687793]">
+                  No skill progress metrics available. Complete evaluations to view percentiles.
+                </div>
+              ) : (
+                skillsBreakdown.map((item) => (
+                  <ProgressBar
+                    key={item.name}
+                    label={item.name}
+                    score={item.score}
+                    value={item.score}
+                    color={item.color}
+                  />
+                ))
+              )}
             </div>
           </Card>
         </motion.div>

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"rankora/server/internal/config"
+	"rankora/server/internal/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -64,11 +65,9 @@ func (c *JWKSCache) getKey(kid string) (*rsa.PublicKey, error) {
 	}
 	c.mu.RUnlock()
 
-	// Refresh cache on missing key or expired TTL
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Double check
 	if time.Since(c.fetchedAt) < c.ttl {
 		if key, ok := c.keys[kid]; ok {
 			return key, nil
@@ -137,51 +136,42 @@ func parseRSAPublicKey(nStr, eStr string) (*rsa.PublicKey, error) {
 	}, nil
 }
 
-// ClerkClaims represents standard Clerk JWT claims
 type ClerkClaims struct {
 	jwt.RegisteredClaims
 	AuthorizedParties []string `json:"azp,omitempty"`
 }
 
-// RequireClerkAuth verifies Clerk Bearer token and sets the verified clerk_user_id in Gin context
+// RequireClerkAuth verifies Clerk Bearer token and sets verified clerk_user_id in Gin context
 func RequireClerkAuth(cfg *config.Config) gin.HandlerFunc {
 	jwks := getJWKSCache(cfg.ClerkJWKSURL)
 
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Authentication required. Missing Authorization header.",
-			})
+			response.Unauthorized(c, "Authentication required. Missing Authorization header.")
 			return
 		}
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid Authorization header format. Expected 'Bearer <token>'.",
-			})
+			response.Unauthorized(c, "Invalid Authorization header format. Expected 'Bearer <token>'.")
 			return
 		}
 
 		tokenString := parts[1]
 
-		// Development fallback: in local development mode without JWKS configured, allow verified dev tokens
-		// formatted as 'mock_<clerk_user_id>' or 'user_<id>' only if explicitly in development environment
-		if cfg.Environment == "development" && (strings.HasPrefix(tokenString, "mock_") || strings.HasPrefix(tokenString, "user_")) {
-			clerkSubject := tokenString
-			c.Set("clerk_user_id", clerkSubject)
+		// Development fallback for local testing
+		if cfg.AppEnv == "development" && (strings.HasPrefix(tokenString, "mock_") || strings.HasPrefix(tokenString, "user_")) {
+			c.Set("clerk_user_id", tokenString)
 			c.Next()
 			return
 		}
 
-		// Parse token and dynamically resolve RSA public key from Clerk JWKS or PEM
 		parsedToken, err := jwt.ParseWithClaims(tokenString, &ClerkClaims{}, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 
-			// If static PEM configured, try parsing it
 			if cfg.ClerkPEMPublicKey != "" {
 				return jwt.ParseRSAPublicKeyFromPEM([]byte(cfg.ClerkPEMPublicKey))
 			}
@@ -191,8 +181,8 @@ func RequireClerkAuth(cfg *config.Config) gin.HandlerFunc {
 		})
 
 		if err != nil || !parsedToken.Valid {
-			// In development mode, check if token can be inspected for claims when JWKS is not reachable
-			if cfg.Environment == "development" {
+			// In development mode only, attempt unverified subject parse if JWKS is unreachable
+			if cfg.AppEnv == "development" {
 				unverifiedClaims := jwt.MapClaims{}
 				parser := jwt.NewParser()
 				if _, _, unverifiedErr := parser.ParseUnverified(tokenString, unverifiedClaims); unverifiedErr == nil {
@@ -204,28 +194,22 @@ func RequireClerkAuth(cfg *config.Config) gin.HandlerFunc {
 				}
 			}
 
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error":   "Invalid or expired Clerk token.",
-				"details": err.Error(),
-			})
+			response.Unauthorized(c, "Invalid or expired session token.")
 			return
 		}
 
 		claims, ok := parsedToken.Claims.(*ClerkClaims)
 		if !ok || claims.Subject == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "Clerk token does not contain a valid subject claim.",
-			})
+			response.Unauthorized(c, "Session token does not contain a valid subject claim.")
 			return
 		}
 
-		// Bind verified Clerk subject to context. Handlers MUST use this subject.
 		c.Set("clerk_user_id", claims.Subject)
 		c.Next()
 	}
 }
 
-// OptionalClerkAuth extracts clerk_user_id if valid Bearer token provided, but doesn't reject if missing
+// OptionalClerkAuth extracts clerk_user_id if present and valid, without aborting if absent
 func OptionalClerkAuth(cfg *config.Config) gin.HandlerFunc {
 	requireAuth := RequireClerkAuth(cfg)
 

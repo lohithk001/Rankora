@@ -16,6 +16,9 @@ import (
 	"rankora/server/internal/config"
 	"rankora/server/internal/database"
 	"rankora/server/internal/handlers"
+	"rankora/server/internal/integrations/codeforces"
+	"rankora/server/internal/integrations/github"
+	"rankora/server/internal/middleware"
 	"rankora/server/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -25,10 +28,13 @@ func main() {
 	log.Println("[Rankora] Starting Go + Gin Backend for Neon Serverless PostgreSQL...")
 
 	// 1. Load Configuration
-	cfg := config.LoadConfig()
+	cfg, cfgErr := config.LoadConfig()
+	if cfgErr != nil {
+		log.Printf("[Rankora] Config warning: %v", cfgErr)
+	}
 
 	// 2. Setup Gin Mode
-	if cfg.Environment == "production" {
+	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -66,49 +72,103 @@ func main() {
 		log.Println("[Rankora] Notice: DATABASE_URL is not set or contains placeholder credentials. Running in mock-ready state.")
 	}
 
-	// 4. Repositories
+	// 4. Initialize Repositories
 	var profileRepo *repository.ProfileRepository
 	var projectRepo *repository.ProjectRepository
 	var skillRepo *repository.SkillRepository
 	var leaderboardRepo *repository.LeaderboardRepository
+	var syncRepo *repository.SyncRepository
+	var assessmentRepo *repository.AssessmentRepository
+	var communityRepo *repository.CommunityRepository
+	var hiringRepo *repository.HiringRepository
+	var notifRepo *repository.NotificationRepository
 
 	if db != nil && db.Pool != nil {
 		profileRepo = repository.NewProfileRepository(db.Pool)
 		projectRepo = repository.NewProjectRepository(db.Pool)
 		skillRepo = repository.NewSkillRepository(db.Pool)
 		leaderboardRepo = repository.NewLeaderboardRepository(db.Pool)
+		syncRepo = repository.NewSyncRepository(db.Pool)
+		assessmentRepo = repository.NewAssessmentRepository(db.Pool)
+		communityRepo = repository.NewCommunityRepository(db.Pool)
+		hiringRepo = repository.NewHiringRepository(db.Pool)
+		notifRepo = repository.NewNotificationRepository(db.Pool)
 	}
 
-	// 5. Handlers
-	apiHandler := handlers.NewAPIHandler(db, profileRepo, projectRepo, skillRepo, leaderboardRepo)
+	// 5. External Integrations
+	ghClient := github.NewClient(cfg.GitHubClientID, cfg.GitHubClientSecret, cfg.GitHubCallbackURL)
+	cfClient := codeforces.NewClient()
 
-	// 6. Router Setup
+	// 6. API Handler
+	apiHandler := handlers.NewAPIHandler(
+		db, cfg, profileRepo, projectRepo, skillRepo, leaderboardRepo,
+		syncRepo, assessmentRepo, communityRepo, hiringRepo, notifRepo,
+		ghClient, cfClient,
+	)
+
+	// 7. Router Setup
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(loggerMiddleware())
 	router.Use(corsMiddleware(cfg.AllowedOrigins))
 
-	// Global Health check (both root and api/v1 paths)
+	// Global rate limiter: 300 requests per 15 minutes per IP
+	rateLimiter := middleware.NewRateLimiter(15*time.Minute, 300)
+	router.Use(rateLimiter.Middleware())
+
+	// Request body size limit: 1MB to prevent payload exhaustion
+	router.Use(middleware.RequestSizeLimit(1 << 20))
+
+	// Health check endpoints
 	router.GET("/health", apiHandler.HealthCheck)
-	router.GET("/api/v1/health", apiHandler.HealthCheck)
+	router.GET("/health/live", apiHandler.HealthLive)
+	router.GET("/health/ready", apiHandler.HealthReady)
 
 	// API v1 Group
 	v1 := router.Group("/api/v1")
 	{
+		// Health & Readiness
+		v1.GET("/health", apiHandler.HealthCheck)
+		v1.GET("/health/live", apiHandler.HealthLive)
+		v1.GET("/health/ready", apiHandler.HealthReady)
+
 		// Public Leaderboard Endpoints
 		v1.GET("/leaderboard", apiHandler.GetLeaderboard)
-		v1.GET("/leaderboards", apiHandler.GetLeaderboard) // legacy plural compatibility
+		v1.GET("/leaderboards", apiHandler.GetLeaderboard)
+		v1.GET("/leaderboards/global", apiHandler.GetLeaderboard)
+		v1.GET("/leaderboards/countries/:countryCode", apiHandler.GetCountryLeaderboard)
+		v1.GET("/leaderboards/dimensions/:dimension", apiHandler.GetDimensionLeaderboard)
 		v1.GET("/leaderboard/filters", apiHandler.GetLeaderboardFilters)
+		v1.GET("/leaderboards/filters", apiHandler.GetLeaderboardFilters)
 		v1.GET("/leaderboard/methodology", apiHandler.GetLeaderboardMethodology)
+		v1.GET("/methodology", apiHandler.GetMethodology)
 
 		// Public Developer Profile Lookups
 		v1.GET("/developers/:username", apiHandler.GetProfileByUsername)
+		v1.GET("/profiles/:username", apiHandler.GetProfileByUsername)
 		v1.GET("/developers/:username/scores", apiHandler.GetDeveloperScoreBreakdown)
 		v1.GET("/developers/:username/score-breakdown", apiHandler.GetDeveloperScoreBreakdown)
 		v1.GET("/developers/:username/rank-history", apiHandler.GetDeveloperRankHistory)
 
+		// Assessments Catalog
+		v1.GET("/assessments", apiHandler.ListAssessments)
+		v1.GET("/assessments/:id", apiHandler.GetAssessment)
+
+		// Community Public Read
+		v1.GET("/community/feed", apiHandler.GetFeed)
+		v1.GET("/community/topics", apiHandler.GetTopics)
+		v1.GET("/community/posts/:id", apiHandler.GetPost)
+		v1.GET("/community/posts/:id/comments", apiHandler.GetComments)
+
+		// Hiring Public Discovery
+		v1.GET("/hiring/developers", apiHandler.SearchCandidates)
+		v1.GET("/hiring/developers/:username", apiHandler.GetCandidateProfile)
+
 		// Username Availability (Used during onboarding registration)
 		v1.GET("/onboarding/check-username/:username", apiHandler.CheckUsername)
+
+		// External OAuth Callbacks
+		v1.GET("/integrations/github/callback", apiHandler.GitHubCallback)
 
 		// Protected Routes (Require Verified Clerk Bearer Token)
 		authRequired := v1.Group("")
@@ -117,6 +177,9 @@ func main() {
 			// Developer Profile Operations
 			authRequired.GET("/me/profile", apiHandler.GetMyProfile)
 			authRequired.PATCH("/me/profile", apiHandler.PatchMyProfile)
+			authRequired.GET("/me/preferences", apiHandler.GetMyPreferences)
+			authRequired.PATCH("/me/preferences", apiHandler.PatchMyPreferences)
+			authRequired.GET("/me/export", apiHandler.ExportMyData)
 
 			// Onboarding Endpoints
 			authRequired.GET("/me/onboarding", apiHandler.GetMyOnboarding)
@@ -133,13 +196,55 @@ func main() {
 			authRequired.GET("/me/skills", apiHandler.GetMySkills)
 			authRequired.PUT("/me/skills", apiHandler.PutMySkills)
 
-			// Authenticated User Ranking
+			// Scores, Evidence, Growth & Appeals
+			authRequired.GET("/me/scores", apiHandler.GetMyScores)
+			authRequired.GET("/me/growth", apiHandler.GetMyGrowth)
+			authRequired.GET("/me/evidence", apiHandler.GetMyEvidence)
 			authRequired.GET("/me/rankings", apiHandler.GetMyRankings)
+			authRequired.POST("/me/appeals", apiHandler.SubmitScoreAppeal)
+
+			// Account Integrations & Sync
+			authRequired.GET("/me/accounts", apiHandler.GetMyAccounts)
+			authRequired.POST("/integrations/github/connect", apiHandler.ConnectGitHub)
+			authRequired.DELETE("/integrations/:provider", apiHandler.DisconnectProvider)
+			authRequired.POST("/integrations/:provider/sync", apiHandler.TriggerSync)
+			authRequired.GET("/integrations/:provider/sync-status", apiHandler.GetSyncStatus)
+
+			// Assessments Attempts & Grading
+			authRequired.POST("/assessments/:id/attempts", apiHandler.StartAttempt)
+			authRequired.POST("/attempts/:id/submit", apiHandler.SubmitAttempt)
+			authRequired.GET("/attempts/:id/results", apiHandler.GetAttemptResults)
+
+			// Community Interactive Features
+			authRequired.POST("/community/posts", apiHandler.CreatePost)
+			authRequired.PATCH("/community/posts/:id", apiHandler.UpdatePost)
+			authRequired.DELETE("/community/posts/:id", apiHandler.DeletePost)
+			authRequired.POST("/community/posts/:id/votes", apiHandler.VotePost)
+			authRequired.POST("/community/posts/:id/bookmark", apiHandler.BookmarkPost)
+			authRequired.POST("/community/posts/:id/comments", apiHandler.CreateComment)
+			authRequired.POST("/community/users/:username/follow", apiHandler.FollowUser)
+			authRequired.POST("/community/posts/:id/report", apiHandler.ReportPost)
+
+			// Hiring Recruiter Actions
+			authRequired.POST("/hiring/saved-developers", apiHandler.SaveCandidate)
+			authRequired.DELETE("/hiring/saved-developers/:username", apiHandler.UnsaveCandidate)
+			authRequired.GET("/hiring/saved-developers", apiHandler.ListSavedCandidates)
+			authRequired.POST("/hiring/contact", apiHandler.ContactCandidate)
+
+			// In-App Notifications
+			authRequired.GET("/notifications", apiHandler.GetNotifications)
+			authRequired.POST("/notifications/:id/read", apiHandler.MarkNotificationRead)
+			authRequired.POST("/notifications/read-all", apiHandler.MarkAllNotificationsRead)
+
+			// Account Life Cycle & Data Purge
+			authRequired.DELETE("/me", apiHandler.DeleteMyAccount)
+			authRequired.DELETE("/me/account", apiHandler.DeleteMyAccount)
+			authRequired.DELETE("/users/account", apiHandler.DeleteMyAccount)
 		}
 	}
 
-	// 7. Start HTTP Server with Graceful Shutdown
-	addr := fmt.Sprintf(":%s", cfg.Port)
+	// 8. Start HTTP Server with Graceful Shutdown
+	addr := fmt.Sprintf(":%s", cfg.APIPort)
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      router,
@@ -149,7 +254,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[Rankora] Server listening on http://localhost:%s", cfg.Port)
+		log.Printf("[Rankora] Server listening on http://localhost:%s", cfg.APIPort)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("[Rankora] Listen error: %s\n", err)
 		}

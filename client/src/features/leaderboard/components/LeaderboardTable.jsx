@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { Card } from '../../../components/ui/Card';
 import { DeveloperAvatar } from '../../../components/common/DeveloperAvatar';
+import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
+import { EmptyState } from '../../../components/common/EmptyState';
 import { cn } from '../../../lib/utils';
 
 export function LeaderboardTable({
@@ -45,31 +47,19 @@ export function LeaderboardTable({
   };
 
   if (isLoading) {
-    return (
-      <Card className="p-8 text-center space-y-3">
-        <div className="w-8 h-8 rounded-full border-2 border-[#15264B] border-t-transparent animate-spin mx-auto" />
-        <p className="text-xs text-[#687793] font-medium">Computing live ranking snapshot...</p>
-      </Card>
-    );
+    return <LoadingSkeleton type="table" count={pageSize || 10} />;
   }
 
   if (developers.length === 0) {
     return (
-      <Card className="p-12 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-[#F5F8FF] text-[#687793] flex items-center justify-center mx-auto border border-[#E2EAF5]">
-          <HelpCircle className="w-6 h-6" />
-        </div>
-        <h3 className="text-base font-bold text-[#15264B]">No developers match your filters</h3>
-        <p className="text-xs text-[#687793] max-w-sm mx-auto">
-          Try expanding your country, track, or league selection to view ranked engineers.
-        </p>
-        <button
-          onClick={onResetFilters}
-          className="mt-2 px-4 py-1.5 rounded-full bg-[#15264B] text-white text-xs font-semibold hover:bg-[#0D1933] transition-colors cursor-pointer"
-        >
-          Reset Filters
-        </button>
-      </Card>
+      <EmptyState
+        title="No developers match your filters"
+        description="Try expanding your country, track, or league selection to view ranked engineers."
+        icon={HelpCircle}
+        actionLabel="Reset All Filters"
+        onAction={onResetFilters}
+        className="my-2 bg-white"
+      />
     );
   }
 
@@ -149,9 +139,17 @@ export function LeaderboardTable({
               return (
                 <tr 
                   key={dev.id || dev.username}
+                  tabIndex={0}
+                  role="row"
                   onClick={() => navigate(`/developers/${dev.username}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/developers/${dev.username}`);
+                    }
+                  }}
                   className={cn(
-                    "transition-colors cursor-pointer select-none",
+                    "transition-colors cursor-pointer select-none focus-visible:bg-[#F5F8FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2563EB]",
                     isUserRow 
                       ? "bg-[#E4F8EF]/50 hover:bg-[#E4F8EF]/80 font-semibold" 
                       : "hover:bg-[#F5F8FF]"

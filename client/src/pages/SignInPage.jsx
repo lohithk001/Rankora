@@ -63,6 +63,14 @@ export function SignInPage() {
             }}
           />
         </div>
+
+        {/* Password Reset & Recovery Helper Card */}
+        <div className="w-full p-4 rounded-2xl bg-white border border-[#E2EAF5] shadow-xs text-xs text-[#687793] space-y-1 text-center">
+          <p className="font-bold text-[#15264B]">Account Recovery & Password Reset</p>
+          <p className="text-[11px] leading-relaxed">
+            Need to reset your credentials? Click <strong className="text-[#2563EB]">"Forgot password?"</strong> above to receive a secure recovery code on your verified email address.
+          </p>
+        </div>
       </motion.div>
     </div>
   );

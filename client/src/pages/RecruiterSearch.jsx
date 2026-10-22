@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Briefcase, Bookmark, X } from 'lucide-react';
+import { Search, Briefcase, Bookmark, X, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RECRUITER_CANDIDATES } from '../lib/mockData';
 import { Card } from '../components/ui/Card';
@@ -17,6 +17,33 @@ export function RecruiterSearch() {
   const [isRemoteOnly, setIsRemoteOnly] = useState(false);
   const [shortlistedIds, setShortlistedIds] = useState(new Set());
   const [showPostJobModal, setShowPostJobModal] = useState(false);
+  const [jobSuccessMessage, setJobSuccessMessage] = useState(null);
+  const [isPublishingJob, setIsPublishingJob] = useState(false);
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowPostJobModal(false);
+      }
+    };
+    if (showPostJobModal) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showPostJobModal]);
+
+  const handlePublishJob = () => {
+    setIsPublishingJob(true);
+    setTimeout(() => {
+      setIsPublishingJob(false);
+      setJobSuccessMessage("Verified job post created! Top matching candidate profiles alerted.");
+      setTimeout(() => {
+        setShowPostJobModal(false);
+        setJobSuccessMessage(null);
+      }, 1600);
+    }, 700);
+  };
 
   const toggleShortlist = (id, e) => {
     e.stopPropagation();
@@ -99,6 +126,7 @@ export function RecruiterSearch() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              aria-label="Search candidates by role, skills or location"
               placeholder="Search by role, skills or location..."
               className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-white border border-[#E2EAF5] rounded-2xl text-xs sm:text-sm text-[#15264B] placeholder-[#687793] shadow-2xs focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[#EAF3FF] transition font-sans"
             />
@@ -110,7 +138,8 @@ export function RecruiterSearch() {
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none transition"
+              aria-label="Filter candidates by role"
+              className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] transition"
             >
               <option value="All Roles">All Roles</option>
               <option value="Backend">Backend</option>
@@ -122,7 +151,8 @@ export function RecruiterSearch() {
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none transition"
+              aria-label="Filter candidates by location"
+              className="px-3.5 py-1.5 rounded-full bg-white border border-[#E2EAF5] text-xs text-[#15264B] font-semibold cursor-pointer shadow-2xs hover:bg-[#F5F8FF] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] transition"
             >
               <option value="All">All Locations</option>
               <option value="Bengaluru">Bengaluru</option>
@@ -133,7 +163,8 @@ export function RecruiterSearch() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsRemoteOnly(!isRemoteOnly)}
-              className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition shadow-2xs ${
+              aria-pressed={isRemoteOnly}
+              className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB] ${
                 isRemoteOnly 
                   ? 'bg-[#15264B] text-white border-[#15264B]' 
                   : 'bg-white text-[#15264B] border-[#E2EAF5] hover:bg-[#F5F8FF]'
@@ -296,11 +327,11 @@ export function RecruiterSearch() {
       {/* Post a Job Demo Dialog */}
       <AnimatePresence>
         {showPostJobModal && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div 
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="post-job-title"
             onClick={() => setShowPostJobModal(false)}
           >
             <motion.div 
@@ -313,12 +344,13 @@ export function RecruiterSearch() {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-[#15264B]">Post Verified Engineering Role</h3>
+                  <h3 id="post-job-title" className="text-lg font-bold text-[#15264B]">Post Verified Engineering Role</h3>
                   <p className="text-xs text-[#687793]">Reach top 5% verified developers</p>
                 </div>
                 <button 
                   onClick={() => setShowPostJobModal(false)}
-                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                  aria-label="Close dialog"
+                  className="text-[#687793] hover:text-[#15264B] p-1 rounded-full hover:bg-slate-100 transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -353,27 +385,39 @@ export function RecruiterSearch() {
                 </div>
               </div>
 
-              <div className="p-3 bg-[#EAF3FF] rounded-2xl border border-[#D2E4FC] text-xs text-[#1D4ED8]">
-                💡 Rankora automatically matches candidates with verified challenge evidence.
-              </div>
+              {jobSuccessMessage ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-[#E4F8EF] border border-[#B9EED9] text-xs text-[#059669] flex items-center gap-2 font-medium"
+                >
+                  <CheckCircle2 className="w-5 h-5 shrink-0" />
+                  <span>{jobSuccessMessage}</span>
+                </motion.div>
+              ) : (
+                <div className="p-3 bg-[#EAF3FF] rounded-2xl border border-[#D2E4FC] text-xs text-[#1D4ED8]">
+                  💡 Rankora automatically matches candidates with verified challenge evidence.
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <Button variant="secondary" size="md" onClick={() => setShowPostJobModal(false)}>
-                  Cancel
+                  {jobSuccessMessage ? "Close" : "Cancel"}
                 </Button>
-                <Button 
-                  variant="primary" 
-                  size="md" 
-                  onClick={() => {
-                    alert("Demo job listing created! Verified candidates matched.");
-                    setShowPostJobModal(false);
-                  }}
-                >
-                  Publish Job
-                </Button>
+                {!jobSuccessMessage && (
+                  <Button 
+                    variant="primary" 
+                    size="md" 
+                    disabled={isPublishingJob}
+                    onClick={handlePublishJob}
+                    className="font-semibold px-5"
+                  >
+                    {isPublishingJob ? "Publishing..." : "Publish Job"}
+                  </Button>
+                )}
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

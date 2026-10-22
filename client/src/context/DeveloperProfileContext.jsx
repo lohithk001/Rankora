@@ -117,6 +117,25 @@ export function DeveloperProfileProvider({ children }) {
     }));
   };
 
+  // Delete account with full data cleanup
+  const deleteAccount = async () => {
+    if (!user) return { success: false, error: 'Not authenticated' };
+    let token = null;
+    try {
+      token = await getToken();
+    } catch {
+      // Optional
+    }
+    const result = await onboardingService.deleteAccount(user.id, token);
+    setCustomProfile(null);
+    setOnboardingStatus({
+      isCompleted: false,
+      isSkipped: false,
+      isLoading: false
+    });
+    return result;
+  };
+
   // Reset for testing
   const resetOnboarding = () => {
     if (!user) return;
@@ -151,6 +170,7 @@ export function DeveloperProfileProvider({ children }) {
       completeOnboarding,
       skipOnboarding,
       resetOnboarding,
+      deleteAccount,
       refreshProfile: loadProfile
     }}>
       {children}
